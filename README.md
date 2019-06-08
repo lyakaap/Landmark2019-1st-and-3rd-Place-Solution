@@ -9,13 +9,11 @@ bash reproduce.sh  # train models and predict for reproducing
 ```
 
 
-
 We borrow idea and code from these grate repositories,
 
 * https://github.com/filipradenovic/cnnimageretrieval-pytorch/tree/master/cirtorch
 * https://github.com/kevin-ssy/FishNet
 * https://github.com/facebookresearch/maskrcnn-benchmark/blob/master/maskrcnn_benchmark/data/samplers/grouped_batch_sampler.py
-
 
 
 ## Ref
