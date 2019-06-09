@@ -10,7 +10,7 @@ bash setup.sh  # setup data to ready training
 bash reproduce.sh  # train models and predict for reproducing
 ```
 
-We borrow idea and code from these grate repositories,
+We borrow idea and code from these great repositories,
 
 * https://github.com/filipradenovic/cnnimageretrieval-pytorch/tree/master/cirtorch
 * https://github.com/kevin-ssy/FishNet
