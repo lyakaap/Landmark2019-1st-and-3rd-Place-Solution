@@ -115,7 +115,7 @@ https://www.kaggle.com/c/humpback-whale-identification の7位が使っていた
 
 ## [Attention-based Ensemble for Deep Metric Learning](https://arxiv.org/abs/1804.00382)
 
-<img src="https://user-images.githubusercontent.com/27487010/57783199-af212580-7768-11e9-8b48-5e59f97a0cdf.png" width=9cm>
+![](https://user-images.githubusercontent.com/27487010/57783199-af212580-7768-11e9-8b48-5e59f97a0cdf.png)
 
 metric learningのattentionを使ったアンサンブルの話。アンサンブルは計算コストがかかる問題があるため、特徴抽出に用いるbackboneのネットワークとclassifierは共通のものを使い、途中のattentionの部分で別々の重みを学習させる。これにより、attentionごとに違う特徴に重みをつけるようになり、少ないコストで高い精度が得られる。
 
@@ -216,9 +216,7 @@ Deep Image Retrieval: Learning global representations for image searchのジャ�
 
 DELFの論文。Deepなlocal descriptorを提案。
 
-<img src=https://user-images.githubusercontent.com/27487010/57424728-9a69fc80-7253-11e9-8a94-c83e45e6a909.png width=15cm>
-
-
+![](https://user-images.githubusercontent.com/27487010/57424728-9a69fc80-7253-11e9-8a94-c83e45e6a909.png)
 
 * cnnのfeature mapのサブピクセル1つ1つはそれぞれlocal descriptorとみなせる。
   * (H, W, C)のfeature mapであれば、C次元のdescriptorがHxW個得られる。
@@ -234,7 +232,7 @@ DELFの論文。Deepなlocal descriptorを提案。
 
 [Large-Scale Image Retrieval with Attentive Deep Local Features](https://arxiv.org/abs/1612.06321)の後続的な論文。
 
-<img src="https://user-images.githubusercontent.com/27487010/57821122-52565700-77ca-11e9-9d8e-9c29122f7f01.png" width=10cm>
+![](https://user-images.githubusercontent.com/27487010/57821122-52565700-77ca-11e9-9d8e-9c29122f7f01.png)
 
 * Landmark画像に対してdetectorを用いることで、landmark領域を検知。領域ごとにdelf特徴を抽出し、VLADによるdescriptorを構築。最後に全領域で統合 (mean pooling) し、ASMKによる類似度計算を行い画像のマッチングを行うことを提案。この領域をまたいだASMKをR-ASMKと名付け、ASMKに比べて計算コストを増やすことなく高精度を達成した。
   * delf特徴: attentionを用いてcnn feature mapから抽出されたlocal descriptor
@@ -255,7 +253,7 @@ roxford5k/rparis6kにて、QE/DBA/Diffusionを使うことで既存手法に比�
 
 roxford5k/rparis6kにおいての、QE/DBAの「使用する近傍の数」「α」についてそれぞれの精度を検証している。意外にも、DBAのαは1, QEのβは0のとき (つまり普通のnQE) が一番精度が良かったらしい。
 
-<img src="https://user-images.githubusercontent.com/27487010/58009315-210ebb80-7b29-11e9-8f23-aae12905ea1a.png" width=14cm>
+![](https://user-images.githubusercontent.com/27487010/58009315-210ebb80-7b29-11e9-8f23-aae12905ea1a.png)
 
  
 
@@ -316,13 +314,13 @@ https://towardsdatascience.com/advances-in-few-shot-learning-a-guided-tour-36bc1
 
    * 現在のPerson Re-IDのトレンドは、triplet lossとsoftmaxの組み合わせが多い。ただ、それぞれを同じlayerの出力からlossを計算すると精度に悪影響が出るのでは無いかということを指摘。それぞれを分けることで精度を大きく向上させている。
 
-     <img src="https://user-images.githubusercontent.com/27487010/57823829-e24cce80-77d3-11e9-90f0-2b2c186f4fc9.png" width=8cm>
+     ![](https://user-images.githubusercontent.com/27487010/57823829-e24cce80-77d3-11e9-90f0-2b2c186f4fc9.png)
 
 6. Center Loss
 
 これらのトリックを一個づつ加えていった結果がこちら。global descriptorのみで複雑なlocal descriptorベースの手法に近い精度を出すことが出来ている。
 
-<img src="https://user-images.githubusercontent.com/27487010/57821957-74050d80-77cd-11e9-9ccc-8b449fd97a6b.png" width=8cm>
+![](https://user-images.githubusercontent.com/27487010/57821957-74050d80-77cd-11e9-9ccc-8b449fd97a6b.png)
 
 
 
@@ -356,7 +354,7 @@ Lossに用いる項は以下の通り (※ teacherは学習時はfreezeする)
 2. $L^{abs}_{KD}$｜ teacher/student間のembeddingの距離
 3. $L^{rel}_{KD}$｜teacher/student間の $d^T, d^S$ 同士の距離
 
-<img src="https://user-images.githubusercontent.com/27487010/57994195-edb33900-7af6-11e9-9acc-5ef2be86de29.png" width=12cm>
+![](https://user-images.githubusercontent.com/27487010/57994195-edb33900-7af6-11e9-9acc-5ef2be86de29.png)
 
 さらに、distillationで有効であることが分かっている「hint-loss」と「attention-loss」はembeddingのdistillationでも有効であることを確かめた。これらのlossは全てmultitask learningの要領で同時に最適化される。
 
@@ -376,7 +374,7 @@ Triplet lossの学習にはpositive/negative pairを作成する必要がある�
 
 具体的にどうするかと言うと、negative sampleとanchorを混ぜたもの (linear interpolation) を学習に使う。イメージとしては、下の図のように「y- (negative sample) に y+ (positive sample) をミックスすることで擬似的にhardなnegative sampleを作ろう」という狙いがある。しかし、そのまま愚直にミックスするとmanifoldの外に出てしまう（ありえないようなサンプルになってしまう）恐れがあるため、negative sample の manifold の一番近いとこに戻すような操作をする。
 
-<img src="https://user-images.githubusercontent.com/27487010/58157906-44b23d00-7cb4-11e9-8f7c-2137d152f44c.png" width=8cm>
+![](https://user-images.githubusercontent.com/27487010/58157906-44b23d00-7cb4-11e9-8f7c-2137d152f44c.png)
 
 他の主要な工夫点としては、negative sampleの難しさによって、どの程度positve sampleの混ぜ具合を大きくするかを決めている。
 これにより、学習が進んでnegative pairとの距離が小さくなるにつれてnegative sampleに混ぜ込むanchorの割合が増えるため、学習の後半でも生成するnegative sampleの難しさを維持することができる。
@@ -388,10 +386,7 @@ Triplet lossの学習にはpositive/negative pairを作成する必要がある�
 * 元のnegative sampleもgeneratorに通して再構成誤差を最小化するようにする。
 * generatorはメインのネットワークと同時に学習する。
 
-
-
-<img src="https://user-images.githubusercontent.com/27487010/58162398-12f1a400-7cbd-11e9-8ab7-26f00fafe363.png">
-
+![](https://user-images.githubusercontent.com/27487010/58162398-12f1a400-7cbd-11e9-8ab7-26f00fafe363.png)
 
 
 **疑問**：Object detectionではnegative samplingの問題点をfocal lossによって解決した。似たようなことをmetric learningでも出来ないか？
