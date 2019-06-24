@@ -85,7 +85,7 @@ def job(tuning, params_path, devices, resume, save_interval):
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.benchmark = False
 
-    params['clean_path'] = f'/fs2/groups2/gca50080/sp4/working/exp23/train18_clean_reciprocal_fth{params["freqthresh"]}.csv'
+    params['clean_path'] = ROOT + f'input/clean/train18_clean_reciprocal_fth{params["freqthresh"]}.csv'
     exp_path = ROOT + f'experiments/{params["ex_name"]}/'
     os.environ['CUDA_VISIBLE_DEVICES'] = devices
 
@@ -249,12 +249,9 @@ def tuning(mode, n_iter, n_gpu, devices, save_interval, n_blocks, block_id):
 
     space = [
         {
-            # 'batch_size': [32],
             'loss': ['arcface'],
             'freqthresh': [2, 5],
             'margin': [0.3, 0.4],
-            # 's': [30],
-            # 'augmentation': ['soft'],
         },
     ]
 

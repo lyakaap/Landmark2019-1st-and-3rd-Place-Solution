@@ -21,7 +21,6 @@ import tqdm
 from PIL import Image
 import click
 
-
 CSV_PATH, OUT_DIR = '../input/train2018.csv', '../input/train2018_r800'  # recognition challenge
 # CSV_PATH, OUT_DIR = '../input/index.csv', '../input/index'  # retrieval challenge
 # CSV_PATH, OUT_DIR = '../input/test.csv', '../input/test'  # test data
@@ -131,46 +130,13 @@ def loader(df):
     pool.terminate()
 
 
-def create_train_df():
-    import csv
-    data_file = '../input/train.csv'
-    out_file = '../input/train2018meta.csv'
-    out_dir = OUT_DIR
-
-    final = []
-    with open(data_file, 'r') as csvfile:
-        reader = csv.reader(csvfile)
-        print('Reading file...')
-        for row in tqdm.tqdm(reader):
-            filename = os.path.join(out_dir, '{}.jpg'.format(row[0]))
-            if os.path.exists(filename):
-                final.append(row)
-
-    with open(out_file, 'w') as csvfile:
-        writer = csv.writer(
-            csvfile, quoting=csv.QUOTE_NONNUMERIC, lineterminator='\n')
-        writer.writerow(['id', 'url', 'landmark_id'])
-        print('Writing file...')
-        for row in tqdm.tqdm(final, total=len(final), ncols=70):
-            writer.writerow([row[0], row[1], int(row[2])])
-
-
 @click.group()
 def cli():
     pass
 
 
-# @click.option('--size', '-s', default=256)
-# @click.option('--workers', '-w', default=16)
 @cli.command()
-def train():
-    df = pd.read_csv(CSV_PATH).query('url != "None"')
-    loader(overwrite_urls(df))
-    # create_train_df()
-
-
-@cli.command()
-def index():
+def download():
     df = pd.read_csv(CSV_PATH).query('url != "None"')
     loader(overwrite_urls(df))
 

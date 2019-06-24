@@ -92,7 +92,7 @@ def job(tuning, params_path, devices, resume, save_interval):
     if resume is None:
         # C-AIRとABCIで整合性が取れるようにしている。
         params['base_ckpt_path'] = f'experiments/v21/ep{params["epochs"]-1}_augmentation-{params["augmentation"]}_epochs-{params["epochs"]}_loss-{params["loss"]}.pth'
-        params['clean_path'] = f'/fs2/groups2/gca50080/sp4/working/exp12/train19_cleaned_verifythresh{params["verifythresh"]}_freqthresh{params["freqthresh"]}.csv'
+        params['clean_path'] = ROOT + f'input/clean/train19_cleaned_verifythresh{params["verifythresh"]}_freqthresh{params["freqthresh"]}.csv'
     else:
         params = utils.load_checkpoint(path=resume, params=True)['params']
 
@@ -242,10 +242,6 @@ def job(tuning, params_path, devices, resume, save_interval):
 @click.option('--n-blocks', '-n', type=int, default=1)
 @click.option('--block-id', '-i', type=int, default=0)
 def tuning(mode, n_iter, n_gpu, devices, save_interval, n_blocks, block_id):
-    """
-    Example:
-        python v12.py tuning --devices 0,1,2,3 --n-gpu 2
-    """
 
     if n_gpu == -1:
         n_gpu = len(devices.split(','))
@@ -292,10 +288,7 @@ def tuning(mode, n_iter, n_gpu, devices, save_interval, n_blocks, block_id):
 @click.option('--n-blocks', '-n', type=int, default=1)
 @click.option('--block-id', '-i', type=int, default=0)
 def predict(model_path, devices, ms, scale, batch_size, splits, n_blocks, block_id):
-    """
-    python v7.py predict -m v7/ep4_batch_size-32_epochs-5_pooling-G,G,G,G.pth -d 3 &
-    python v7.py predict -m v7/ep4_batch_size-32_epochs-5_pooling-G,G,G,G.pth --ms --scale M -b 28 -d 0 &
-    """
+
     os.environ['CUDA_VISIBLE_DEVICES'] = devices
 
     ckpt = torch.load(model_path)
@@ -387,10 +380,6 @@ def launch_qsub(job_type,
                 model_path, ms, scale, batch_size, splits,  # predict args
                 n_blocks, instance_type
                 ):
-    """
-    python v17.py launch-qsub predict -m v17/ep --ms --scale L --batch-size 26 --splits index,test --n-blocks 32
-    python v7c.py launch-qsub tuning -d 0,1,2,3 --n-gpu 4 --n-blocks 2 -s 1 --instance-type rt_F
-    """
     exp_path = ROOT + f'experiments/{params["ex_name"]}/'
     logger = utils.get_logger(log_dir=exp_path)
     job_ids = []
@@ -446,11 +435,7 @@ def launch_qsub(job_type,
 @click.option('--batch-size', '-b', type=int, default=64)
 @click.option('--splits', type=str, default='index,test')
 def multigpu_predict(devices, model_path, ms, scale, batch_size, splits):
-    """
-    python v16.py multigpu-predict -m v16/ep6_augmentation-hard_batch_size-32_loss-adacos.pth --scale L -b 32 -d 2,3 &
-    python v16.py multigpu-predict -m v16/ep6_augmentation-middle_batch_size-32_loss-adacos.pth --scale L -b 32 -d 4,5 &
-    python v16.py multigpu-predict -m v16/ep6_augmentation-middle_batch_size-32_loss-arcface.pth --scale L -b 32 -d 6,7 &
-    """
+
     devices = devices.split(',')
 
     procs = []

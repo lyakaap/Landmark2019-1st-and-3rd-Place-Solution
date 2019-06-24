@@ -87,7 +87,7 @@ def job(tuning, params_path, devices, resume, save_interval):
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.benchmark = False
 
-    params['clean_path'] = f'/fs2/groups2/gca50080/sp4/working/exp12/train19_cleaned_verifythresh{params["verifythresh"]}_freqthresh{params["freqthresh"]}.csv'
+    params['clean_path'] = ROOT + f'input/clean/train19_cleaned_verifythresh{params["verifythresh"]}_freqthresh{params["freqthresh"]}.csv'
     exp_path = ROOT + f'experiments/{params["ex_name"]}/'
     os.environ['CUDA_VISIBLE_DEVICES'] = devices
 

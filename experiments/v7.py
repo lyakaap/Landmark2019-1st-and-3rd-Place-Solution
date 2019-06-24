@@ -227,10 +227,6 @@ def job(tuning, params_path, devices, resume, save_interval):
 @click.option('--n-blocks', '-n', type=int, default=1)
 @click.option('--block-id', '-i', type=int, default=0)
 def tuning(mode, n_iter, n_gpu, devices, save_interval, n_blocks, block_id):
-    """
-    Example:
-        python v6.py tuning --devices 0 --n-gpu 1 -s 5
-    """
 
     if n_gpu == -1:
         n_gpu = len(devices.split(','))
@@ -267,10 +263,7 @@ def tuning(mode, n_iter, n_gpu, devices, save_interval, n_blocks, block_id):
 @click.option('--n-blocks', '-n', type=int, default=1)
 @click.option('--block-id', '-i', type=int, default=0)
 def predict(model_path, devices, ms, scale, batch_size, splits, n_blocks, block_id):
-    """
-    python v7.py predict -m v7/ep4_batch_size-32_epochs-5_pooling-G,G,G,G.pth -d 3 &
-    python v7.py predict -m v7/ep4_batch_size-32_epochs-5_pooling-G,G,G,G.pth --ms --scale M -b 28 -d 0 &
-    """
+
     os.environ['CUDA_VISIBLE_DEVICES'] = devices
 
     ckpt = torch.load(model_path)
@@ -357,10 +350,7 @@ def launch_qsub(job_type,
                 model_path, ms, scale, batch_size, splits,  # predict args
                 n_blocks, instance_type
                 ):
-    """
-    python v7.py launch-qsub predict -m v7/ep4_batch_size-32_epochs-5_pooling-G,G,G,G.pth --ms --scale M --batch-size 28 --splits train,test --n-blocks 64
-    python v7.py launch-qsub tuning -d 0,1,2,3 --n-gpu 2 --n-blocks 2 -s 1 --instance-type rt_F
-    """
+
     exp_path = ROOT + f'experiments/{params["ex_name"]}/'
     logger = utils.get_logger(log_dir=exp_path)
     job_ids = []

@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+cd ./src/
+python donwloader.py download
+
+cd ../experiments/
 
 # prepare model for later dataset cleaning & finetuning models of v7c
 python v7.py tuning -d 0,1 --n-gpu 2 -s 4
