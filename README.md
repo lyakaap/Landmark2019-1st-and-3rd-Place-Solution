@@ -6,6 +6,11 @@ The 1st Place Solution of the Google Landmark 2019 Retrieval Challenge and the 3
 
 Our solution has been published! You can check from: [Large-scale Landmark Retrieval/Recognition under a Noisy and Diverse Dataset](https://arxiv.org/abs/1906.04087)
 
+### Data
+* Google Landmark Dataset v1: https://www.kaggle.com/google/google-landmarks-dataset
+* Google Landmark Dataset v2: https://github.com/cvdfoundation/google-landmark
+* Clean version of the v2: https://www.kaggle.com/confirm/cleaned-subsets-of-google-landmarks-v2/kernels
+
 ### Experiments
 Model training and inference are done in `experiments/` directory.
 ```

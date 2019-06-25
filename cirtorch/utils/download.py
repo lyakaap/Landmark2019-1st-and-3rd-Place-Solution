@@ -1,5 +1,6 @@
 import os
 
+
 def download_test(data_dir):
     """
     DOWNLOAD_TEST Checks, and, if required, downloads the necessary datasets for the testing.

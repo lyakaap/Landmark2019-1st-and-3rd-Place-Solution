@@ -189,9 +189,12 @@ def job(tuning, params_path, devices, resume, save_interval):
     if tuning:
         tuning_result = {}
         for d in datasets:
-            for key in ['mapE', 'mapM', 'mapH']:
-                mapE, mapM, mapH, mpE, mpM, mpH, kappas = results[d]
-                tuning_result[d + '-' + key] = [eval(key)]
+            if d in ('oxford5k', 'paris6k'):
+                tuning_result[d] = results[d]
+            else:
+                for key in ['mapE', 'mapM', 'mapH']:
+                    mapE, mapM, mapH, mpE, mpM, mpH, kappas = results[d]
+                    tuning_result[d + '-' + key] = [eval(key)]
         utils.write_tuning_result(params, tuning_result, exp_path + 'tuning/results.csv')
 
 

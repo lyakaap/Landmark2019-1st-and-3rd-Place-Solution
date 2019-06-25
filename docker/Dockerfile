@@ -50,6 +50,7 @@ RUN pip install -U \
         albumentations \
         line-profiler \
         tabulate \
+        easydict \
         cloudpickle==0.5.6 # to suppress warning
 
 RUN conda install -y pytorch torchvision cudatoolkit=10.0 -c pytorch && \
@@ -62,4 +63,3 @@ RUN jupyter contrib nbextension install --user
 RUN jt -t grade3 -f firacode -nf firacode -altp -fs 100 -tfs 100 -nfs 100 -dfs 100 -ofs 100 -cellw 88% -T
 RUN ipython profile create &&
     echo "c = get_config(); c.IPCompleter.use_jedi = False" >> ~/.ipython/profile_default/ipython_config.py
-# docker commit 192dcdc97bd3 lyakaap/cuda100
