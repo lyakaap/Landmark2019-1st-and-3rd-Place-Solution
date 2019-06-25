@@ -27,6 +27,15 @@ python vX.py launch-qsub tuning -d 0,1,2,3 --n-gpu 2 --n-blocks 2 -s 1 --instanc
 python vX.py launch-qsub predict -m vX/ep --ms --scale L2 --batch-size 24 --splits train,test --n-blocks 64
 ```
 
+### Prepare cleaned subset
+You can skip this procedure to generate a cleaned subset.
+Pre-computed files are available on [kaggle dataset](https://www.kaggle.com/confirm/cleaned-subsets-of-google-landmarks-v2).
+
+To be able to use this code, please follow [these instructions](https://github.com/tensorflow/models/blob/master/research/delf/INSTALL_INSTRUCTIONS.md) to properly install the DELF library.
+```
+bash scripts/prepare_cleaned_subset.sh
+```
+
 ### Reproduce
 Following commands are for reproducing our results.
 ```
