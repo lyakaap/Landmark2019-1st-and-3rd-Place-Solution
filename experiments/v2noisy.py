@@ -1,26 +1,27 @@
 import json
 import math
 import os
-import subprocess
 import re
+import subprocess
 import time
 from pathlib import Path
 
 import click
 import h5py
 import numpy as np
-from sklearn.model_selection import ParameterGrid, ParameterSampler
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data
+from sklearn.model_selection import ParameterGrid, ParameterSampler
 from tqdm import tqdm
 
+import src.debug
 from src import qsub
 from src import utils, data_utils, metrics
-from src.modeling import models
 from src.eval_retrieval import eval_datasets
+from src.modeling import batch_norm, models
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + '/'
 
@@ -32,10 +33,10 @@ params = {
     'test_batch_size': 64,
     'optimizer': 'momentum',
     'epochs': 5,
+    'scaleup_epochs': 0,
     'wd': 1e-5,
     'model_name': 'resnet101',
     'pooling': 'GeM',
-    'class_topk': 14950,
     'use_fc': True,
     'loss': 'arcface',
     'margin': 0.3,
@@ -47,7 +48,10 @@ params = {
     'brightness_limit': 0.0,
     'contrast_limit': 0.0,
     'augmentation': 'soft',
-    'data': 'train2018_r800',
+    'data': 'train',
+    'freeze_bn': True,
+    'verifythresh': 30,
+    'freqthresh': 3,
 }
 
 
@@ -71,7 +75,6 @@ def cli():
 @click.option('--resume', type=str, default=None, help='checkpoint path')
 @click.option('--save-interval', '-s', type=int, default=1, help='if 0 or negative value, not saving')
 def job(tuning, params_path, devices, resume, save_interval):
-
     global params
     if tuning:
         with open(params_path, 'r') as f:
@@ -84,6 +87,13 @@ def job(tuning, params_path, devices, resume, save_interval):
 
     exp_path = ROOT + f'experiments/{params["ex_name"]}/'
     os.environ['CUDA_VISIBLE_DEVICES'] = devices
+
+    if resume is None:
+        # C-AIRとABCIで整合性が取れるようにしている。
+        params['base_ckpt_path'] = f'experiments/v1only/ep4_augmentation-soft_epochs-5_loss-{params["loss"]}.pth'
+        params['clean_path'] = ROOT + f'input/clean/train19_cleaned_verifythresh{params["verifythresh"]}_freqthresh{params["freqthresh"]}.csv'
+    else:
+        params = utils.load_checkpoint(path=resume, params=True)['params']
 
     logger, writer = utils.get_logger(log_dir=exp_path + f'{mode_str}/log/{setting}',
                                       tensorboard_dir=exp_path + f'{mode_str}/tf_board/{setting}')
@@ -125,18 +135,47 @@ def job(tuning, params_path, devices, resume, save_interval):
                                use_fc=params['use_fc'],
                                fc_dim=params['fc_dim'],
                                ).cuda()
-    optimizer = utils.get_optim(params, model)
+
     criterion = nn.CrossEntropyLoss()
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(
-        optimizer, T_max=params['epochs'] * len(data_loaders['train']), eta_min=3e-6)
-    start_epoch = 0
+    optimizer = utils.get_optim(params, model)
+
+    if resume is None:
+        sdict = torch.load(ROOT + params['base_ckpt_path'])['state_dict']
+        if params['loss'] == 'adacos':
+            del sdict['final.W']  # remove fully-connected layer
+        else:
+            del sdict['final.weight']  # remove fully-connected layer
+        model.load_state_dict(sdict, strict=False)
+
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(
+            optimizer, T_max=params['epochs'] * len(data_loaders['train']), eta_min=3e-6)
+        start_epoch, end_epoch = (0, params['epochs'] - params['scaleup_epochs'])
+    else:
+        ckpt = utils.load_checkpoint(path=resume, model=model, optimizer=optimizer, epoch=True)
+        model, optimizer, start_epoch = ckpt['model'], ckpt['optimizer'], ckpt['epoch'] + 1
+        end_epoch = params['epochs']
+
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(
+            optimizer, T_max=params['epochs'] * len(data_loaders['train']), eta_min=3e-6,
+            last_epoch=start_epoch * len(data_loaders['train']))
+
+        setting += 'scaleup_' + resume.split('/')[-1].replace('.pth', '')
+
+        data_loaders = data_utils.make_verified_train_loaders(
+            params=params,
+            data_root=ROOT + 'input/' + params['data'],
+            train_transform=train_transform,
+            eval_transform=eval_transform,
+            scale='M2',
+            test_size=0,
+            num_workers=8)
+        batch_norm.freeze_bn(model)
 
     if len(devices.split(',')) > 1:
         model = nn.DataParallel(model)
 
-    for epoch in range(start_epoch, params['epochs']):
-
-        logger.info(f'Epoch {epoch}/{params["epochs"]} | lr: {optimizer.param_groups[0]["lr"]}')
+    for epoch in range(start_epoch, end_epoch):
+        logger.info(f'Epoch {epoch}/{end_epoch}')
 
         # ============================== train ============================== #
         model.train(True)
@@ -172,7 +211,7 @@ def job(tuning, params_path, devices, resume, save_interval):
         writer.add_scalars('Acc', {'train': train_acc}, epoch)
         writer.add_scalar('LR', optimizer.param_groups[0]['lr'], epoch)
 
-        if (epoch + 1) == params['epochs'] or (epoch + 1) % save_interval == 0:
+        if (epoch + 1) == end_epoch or (epoch + 1) % save_interval == 0:
             output_file_name = exp_path + f'ep{epoch}_' + setting + '.pth'
             utils.save_checkpoint(path=output_file_name,
                                   model=model,
@@ -211,10 +250,11 @@ def tuning(mode, n_iter, n_gpu, devices, save_interval, n_blocks, block_id):
 
     space = [
         {
-            # 'loss': ['arcface', 'cosface'],
-            'loss': ['arcface', 'cosface', 'softmax'],
-            'epochs': [5],
-            'augmentation': ['soft'],
+            'loss': ['arcface', 'cosface'],
+            # 'epochs': [5],
+            # 'augmentation': ['soft'],
+            'verifythresh': [20, 30, 40, 50],
+            'freqthresh': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
         },
     ]
 
@@ -335,7 +375,6 @@ def launch_qsub(job_type,
                 model_path, ms, scale, batch_size, splits,  # predict args
                 n_blocks, instance_type
                 ):
-
     exp_path = ROOT + f'experiments/{params["ex_name"]}/'
     logger = utils.get_logger(log_dir=exp_path)
     job_ids = []
@@ -351,6 +390,7 @@ def launch_qsub(job_type,
                 "--n-blocks", str(n_blocks),
                 "--block-id", str(block_id),
             ]
+            n_hours = 72
         elif job_type == 'predict':
             cmd_with_args = [
                 "python", "-W", "ignore", __file__, "predict",
@@ -361,12 +401,13 @@ def launch_qsub(job_type,
                 "--n-blocks", str(n_blocks),
                 "--block-id", str(block_id),
             ]
+            n_hours = 18
             if ms:
                 cmd_with_args.append("--ms")
         else:
             raise ValueError('job-type should be one of "tuning" or "predict"')
         proc = qsub.qsub(cmd_with_args,
-                         n_hours=48,
+                         n_hours=n_hours,
                          instance_type=instance_type,
                          logger=logger)
         logger.info(f'Response from qsub: {proc.returncode}')
@@ -389,6 +430,7 @@ def launch_qsub(job_type,
 @click.option('--batch-size', '-b', type=int, default=64)
 @click.option('--splits', type=str, default='index,test')
 def multigpu_predict(devices, model_path, ms, scale, batch_size, splits):
+
     devices = devices.split(',')
 
     procs = []

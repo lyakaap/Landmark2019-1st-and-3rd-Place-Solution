@@ -23,7 +23,7 @@ source /etc/profile.d/modules.sh
 module load cuda/10.0/10.0.130
 module load cudnn/7.5/7.5.0
 source ~/anaconda3/bin/activate landmark19 &&\
-    PYTHONPATH=/fs2/groups2/gca50080/yokoo/landmark {cmd_str:s}
+    PYTHONPATH=/fs2/groups2/gca50080/yokoo/Landmark2019-1st-and-3rd-Place-Solution {cmd_str:s}
 """
 
 JOB_CPU_TEMPLATE = """
@@ -33,7 +33,7 @@ JOB_CPU_TEMPLATE = """
 #$ -j y
 #$ -cwd
 source ~/anaconda3/bin/activate landmark19 &&\
-    PYTHONPATH=/fs2/groups2/gca50080/yokoo/landmark {cmd_str:s}
+    PYTHONPATH=/fs2/groups2/gca50080/yokoo/Landmark2019-1st-and-3rd-Place-Solution {cmd_str:s}
 """
 
 

@@ -58,6 +58,10 @@ $\mathbb{1}\left(j=y_{i}\right)$ はjが正解クラスのとき1になって他
 
 
 
+[AdaptiveFace: Adaptive Margin and Sampling for Face Recognition]()
+
+
+
 ## Pooling手法あれこれ
 
 - **Sum-pooling of Convolutions (SPoC) **

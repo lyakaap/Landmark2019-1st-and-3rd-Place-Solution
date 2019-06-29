@@ -9,7 +9,7 @@ Our solution has been published! You can check from: [Large-scale Landmark Retri
 ### Data
 * Google Landmark Dataset v1: https://www.kaggle.com/google/google-landmarks-dataset
 * Google Landmark Dataset v2: https://github.com/cvdfoundation/google-landmark
-* Clean version of the v2: https://www.kaggle.com/confirm/cleaned-subsets-of-google-landmarks-v2/kernels
+* **Clean version of the v2 (Newly Released!)**: https://www.kaggle.com/confirm/cleaned-subsets-of-google-landmarks-v2/kernels
 
 ### Experiments
 Model training and inference are done in `experiments/` directory.
@@ -28,6 +28,11 @@ python vX.py launch-qsub predict -m vX/ep --ms --scale L2 --batch-size 24 --spli
 ```
 
 ### Reproduce
+Prepare FishNet first.
+1. Download the checkpoint of FishNet-150 from https://www.dropbox.com/s/ajy9p6f97y45f1r/fishnet150_ckpt_welltrained.tar?dl=0
+2. Place the checkpoint `src/FishNet/checkpoints/`
+3. Execute src/FishNet/fix_checkpoint.py
+
 Following commands are for reproducing our results.
 ```
 cd ./experiments/
@@ -45,3 +50,4 @@ python submit_recognition.py  # for retrieval challenge
 * https://github.com/4uiiurz1/pytorch-adacos/blob/master/metrics.py
 * https://github.com/kevin-ssy/FishNet
 * https://github.com/facebookresearch/maskrcnn-benchmark/blob/master/maskrcnn_benchmark/data/samplers/grouped_batch_sampler.py
+

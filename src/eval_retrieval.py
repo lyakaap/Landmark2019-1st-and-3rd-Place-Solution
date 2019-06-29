@@ -1,14 +1,19 @@
+import argparse
 import os
+import subprocess
+
+import faiss
 import numpy as np
-from tqdm import tqdm
+import pandas as pd
 import torch
 import torch.nn.functional as F
 from torchvision import transforms
+from tqdm import tqdm
 
 from cirtorch.datasets.genericdataset import ImagesFromList
 from cirtorch.datasets.testdataset import configdataset
-from cirtorch.utils.general import get_root
 from cirtorch.utils.evaluate import compute_map_and_print
+from cirtorch.utils.general import get_root
 from src import utils
 
 
@@ -103,3 +108,53 @@ def eval_datasets(model,
             dataset, ranks, cfg['gnd'], kappas=[1, 5, 10], logger=logger)
 
     return results
+
+
+if __name__ == '__main__':
+
+    topk = 100
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('index_dirs', help='directories containing features of index')
+    parser.add_argument('test_dirs', help='directories containing features of test')
+    parser.add_argument('--setting', default='')
+    parser.add_argument('-w', '--weights', default='1')
+    parser.add_argument('-d', '--devices', default='0', help='gpu device indexes')
+    args = parser.parse_args()
+
+    index_dirs = args.index_dirs.split(',')
+    test_dirs = args.test_dirs.split(',')
+    setting = args.setting
+    weights = list(map(int, args.weights.split(',')))
+    os.environ['CUDA_VISIBLE_DEVICES'] = args.devices
+    n_gpus = len(args.devices.split(','))
+
+    ids_index, feats_index = utils.prepare_ids_and_feats(index_dirs, weights, normalize=True)
+    ids_test, feats_test = utils.prepare_ids_and_feats(test_dirs, weights, normalize=True)
+    # ids_train, feats_train = utils.prepare_ids_and_feats(train_dirs, weights, normalize=True)
+
+    co = faiss.GpuMultipleClonerOptions()
+    co.shard = True
+    # co.float16 = False
+
+    vres = []
+    for _ in range(n_gpus):
+        res = faiss.StandardGpuResources()
+        vres.append(res)
+
+    print('build index...')
+    cpu_index = faiss.IndexFlatL2(feats_index.shape[1])
+    gpu_index = faiss.index_cpu_to_gpu_multiple_py(vres, cpu_index, co)
+    gpu_index.add(feats_index)
+    dists, topk_idx = gpu_index.search(x=feats_test, k=topk)
+    print('query search done.')
+
+    retrieval_result = pd.DataFrame(ids_test, columns=['id'])
+    retrieval_result['images'] = np.apply_along_axis(' '.join, axis=1, arr=ids_index[topk_idx])
+    output_name = f'../output/{setting}.csv.gz'
+    retrieval_result.to_csv(output_name, compression='gzip', index=False)
+    print('saved to ' + output_name)
+
+    cmd = f'kaggle c submit -c landmark-retrieval-2019 -f {output_name} -m "" '
+    print(cmd)
+    subprocess.run(cmd, shell=True)

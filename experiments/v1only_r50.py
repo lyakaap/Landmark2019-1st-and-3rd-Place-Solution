@@ -33,7 +33,7 @@ params = {
     'optimizer': 'momentum',
     'epochs': 5,
     'wd': 1e-5,
-    'model_name': 'resnet101',
+    'model_name': 'resnet50',
     'pooling': 'GeM',
     'class_topk': 14950,
     'use_fc': True,
@@ -57,11 +57,6 @@ def cli():
         Path(ROOT + f'experiments/{params["ex_name"]}/train').mkdir(parents=True)
     if not Path(ROOT + f'experiments/{params["ex_name"]}/tuning').exists():
         Path(ROOT + f'experiments/{params["ex_name"]}/tuning').mkdir(parents=True)
-
-    np.random.seed(params['seed'])
-    torch.manual_seed(params['seed'])
-    torch.cuda.manual_seed_all(params['seed'])
-    torch.backends.cudnn.benchmark = False
 
 
 @cli.command()
@@ -211,7 +206,6 @@ def tuning(mode, n_iter, n_gpu, devices, save_interval, n_blocks, block_id):
 
     space = [
         {
-            # 'loss': ['arcface', 'cosface'],
             'loss': ['arcface', 'cosface', 'softmax'],
             'epochs': [5],
             'augmentation': ['soft'],
@@ -280,7 +274,6 @@ def predict(model_path, devices, ms, scale, batch_size, splits, n_blocks, block_
     file_suffix = scale + '_' + file_suffix
     file_suffix = 'ms_' + file_suffix if ms else file_suffix
 
-    min_size = 128
     scales = [0.75, 1.0, 1.25] if ms else [1.0]
 
     for split in splits:
@@ -296,10 +289,9 @@ def predict(model_path, devices, ms, scale, batch_size, splits, n_blocks, block_
                 x = x.to('cuda')
 
                 for s in scales:
-                    th = max(min_size, int(h * s // model.DIVIDABLE_BY * model.DIVIDABLE_BY))
-                    tw = max(min_size, int(w * s // model.DIVIDABLE_BY * model.DIVIDABLE_BY))  # round off
-
-                    scaled_x = F.interpolate(x, size=(th, tw), mode='bilinear', align_corners=True)
+                    size = int(h * s // model.DIVIDABLE_BY * model.DIVIDABLE_BY), \
+                           int(w * s // model.DIVIDABLE_BY * model.DIVIDABLE_BY)  # round off
+                    scaled_x = F.interpolate(x, size=size, mode='bilinear', align_corners=True)
                     feat = model.extract_feat(scaled_x)
                     feat = feat.cpu().numpy()
                     feat_blend += feat
@@ -312,7 +304,7 @@ def predict(model_path, devices, ms, scale, batch_size, splits, n_blocks, block_
         output_path = Path(f'{exp_path}feats_{split}_{file_suffix}')
         output_path.mkdir(parents=True, exist_ok=True)
         with h5py.File(output_path / f'block{block_id}.h5', 'a') as f:
-            f.create_dataset('ids', data=np.array(ids, dtype=f'S{len(ids[0])}'))
+            f.create_dataset('ids', data=np.array(ids, dtype='S16'))
             f.create_dataset('feats', data=feats)
 
 
@@ -366,7 +358,7 @@ def launch_qsub(job_type,
         else:
             raise ValueError('job-type should be one of "tuning" or "predict"')
         proc = qsub.qsub(cmd_with_args,
-                         n_hours=48,
+                         n_hours=8,
                          instance_type=instance_type,
                          logger=logger)
         logger.info(f'Response from qsub: {proc.returncode}')

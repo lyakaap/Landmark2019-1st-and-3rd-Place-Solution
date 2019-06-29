@@ -2,7 +2,7 @@ import torch
 from src.FishNet import models
 from src import utils
 
-ckpt_path = '../src/FishNet/checkpoints/fishnet150_ckpt_welltrained.tar'
+ckpt_path = './checkpoints/fishnet150_ckpt_welltrained.tar'
 ckpt = torch.load(ckpt_path)
 ckpt['state_dict'] = utils.remove_redundant_keys(ckpt['state_dict'])
 model = models.__dict__[ckpt['arch']]()
@@ -53,7 +53,7 @@ import torch
 from src.FishNet import models
 from src import utils
 
-ckpt_path = '../src/FishNet/checkpoints/fishnet201_ckpt_welltrain.tar'
+ckpt_path = './checkpoints/fishnet201_ckpt_welltrain.tar'
 ckpt = torch.load(ckpt_path)
 ckpt['state_dict'] = utils.remove_redundant_keys(ckpt['state_dict'])
 model = models.__dict__[ckpt['arch']]()
