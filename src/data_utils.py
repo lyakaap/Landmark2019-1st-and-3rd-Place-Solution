@@ -229,7 +229,10 @@ def make_train_loaders(params,
                                 seed=seed)
 
     if 'path' not in df.columns:
-        df['path'] = df['id'].apply(lambda x: data_root + f'/{x}.jpg')
+        if '18' in data_root:  # train data from 2018
+            df['path'] = df['id'].apply(lambda x: data_root + f'/{x}.jpg')
+        else:
+            df['path'] = df['id'].apply(lambda x: data_root + '/' + '/'.join(x[:3]) + f'/{x}.jpg')
 
     data_loaders = dict()
 

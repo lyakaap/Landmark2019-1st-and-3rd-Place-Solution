@@ -37,6 +37,7 @@ params = {
     'wd': 1e-5,
     'model_name': 'resnet101',
     'pooling': 'GeM',
+    'class_topk': 203094,
     'use_fc': True,
     'loss': 'arcface',
     'margin': 0.3,
@@ -120,7 +121,7 @@ def job(tuning, params_path, devices, resume, save_interval):
                                                  data_root=ROOT + 'input/' + params['data'],
                                                  train_transform=train_transform,
                                                  eval_transform=eval_transform,
-                                                 scale='S2',
+                                                 scale='SS2',
                                                  test_size=0,
                                                  class_topk=params['class_topk'],
                                                  num_workers=8)
@@ -143,6 +144,8 @@ def job(tuning, params_path, devices, resume, save_interval):
         sdict = torch.load(ROOT + params['base_ckpt_path'])['state_dict']
         if params['loss'] == 'adacos':
             del sdict['final.W']  # remove fully-connected layer
+        elif params['loss'] == 'softmax':
+            del sdict['final.weight'], sdict['final.bias']  # remove fully-connected layer
         else:
             del sdict['final.weight']  # remove fully-connected layer
         model.load_state_dict(sdict, strict=False)
@@ -250,11 +253,9 @@ def tuning(mode, n_iter, n_gpu, devices, save_interval, n_blocks, block_id):
 
     space = [
         {
-            'loss': ['arcface', 'cosface'],
+            'loss': ['arcface', 'softmax'],
             # 'epochs': [5],
             # 'augmentation': ['soft'],
-            'verifythresh': [20, 30, 40, 50],
-            'freqthresh': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
         },
     ]
 

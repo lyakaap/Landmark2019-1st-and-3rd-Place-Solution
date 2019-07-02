@@ -171,11 +171,19 @@ def job(tuning, params_path, devices, resume, save_interval):
         batch_norm.freeze_bn(model)
 
     # tuning実行するだけで、resume可能に
-    # resume = ROOT + f'experiments/ep2_verifythresh{params["verifythresh"]}_freqthresh{params["freqthresh"]}.pth'
+    # resume = ROOT + f'experiments/v2clean/ep2_freqthresh-{params["freqthresh"]}_loss-{params["loss"]}_verifythresh-{params["verifythresh"]}.pth'
     # ckpt = utils.load_checkpoint(path=resume, model=model, optimizer=optimizer, epoch=True)
     # model, optimizer, start_epoch = ckpt['model'], ckpt['optimizer'], ckpt['epoch'] + 1
     # end_epoch = params['epochs']
-    #
+    # scheduler = optim.lr_scheduler.CosineAnnealingLR(
+    #     optimizer, T_max=params['epochs'] * len(data_loaders['train']), eta_min=3e-6,
+    #     last_epoch=start_epoch * len(data_loaders['train']))
+
+    # eval on paris/oxford
+    # resume = ROOT + f'experiments/v2clean/ep4_freqthresh-{params["freqthresh"]}_loss-{params["loss"]}_verifythresh-{params["verifythresh"]}.pth'
+    # ckpt = utils.load_checkpoint(path=resume, model=model, optimizer=optimizer, epoch=True)
+    # model, optimizer, start_epoch = ckpt['model'], ckpt['optimizer'], params['epochs']
+    # end_epoch = params['epochs']
     # scheduler = optim.lr_scheduler.CosineAnnealingLR(
     #     optimizer, T_max=params['epochs'] * len(data_loaders['train']), eta_min=3e-6,
     #     last_epoch=start_epoch * len(data_loaders['train']))
@@ -258,13 +266,28 @@ def tuning(mode, n_iter, n_gpu, devices, save_interval, n_blocks, block_id):
         n_gpu = len(devices.split(','))
 
     space = [
+        # {
+        #     'loss': ['arcface'],
+        #     # 'epochs': [5],
+        #     # 'augmentation': ['soft'],
+        #     'verifythresh': [20, 30, 40],
+        #     'freqthresh': [1],
+        #     # 'freqthresh': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        # },
+        # {
+        #     'loss': ['arcface'],
+        #     # 'epochs': [5],
+        #     # 'augmentation': ['soft'],
+        #     'verifythresh': [20],
+        #     'freqthresh': [2],
+        #     # 'freqthresh': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        # },
         {
             'loss': ['arcface'],
             # 'epochs': [5],
             # 'augmentation': ['soft'],
             'verifythresh': [20, 30, 40, 50],
-            'freqthresh': [1, 2, 3, 4, 5],
-            # 'freqthresh': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+            'freqthresh': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
         },
     ]
 
@@ -400,7 +423,7 @@ def launch_qsub(job_type,
                 "--n-blocks", str(n_blocks),
                 "--block-id", str(block_id),
             ]
-            n_hours = 36
+            n_hours = 8
         elif job_type == 'predict':
             cmd_with_args = [
                 "python", "-W", "ignore", __file__, "predict",
@@ -411,7 +434,7 @@ def launch_qsub(job_type,
                 "--n-blocks", str(n_blocks),
                 "--block-id", str(block_id),
             ]
-            n_hours = 18
+            n_hours = 1
             if ms:
                 cmd_with_args.append("--ms")
         else:
