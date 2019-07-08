@@ -1,12 +1,5 @@
 #!/usr/bin/env bash
 
-ln -s /fs2/groups2/gca50080/sp4/input/test_r1024 /fs2/groups2/gca50080/yokoo/landmark/input/test
-ln -s /fs2/groups2/gca50080/sp4/input/index_r1024 /fs2/groups2/gca50080/yokoo/landmark/input/index
-ln -s /fs2/groups2/gca50080/sp4/input/train_r1024 /fs2/groups2/gca50080/yokoo/landmark/input/train2018
-ln -s /fs2/groups2/gca50080/sp4/cvpr19_landmark/train ./test
-ln -s /fs2/groups2/gca50080/sp4/input/train.csv /fs2/groups2/gca50080/yokoo/landmark/input/old_train.csv
-ln -s /fs2/groups2/gca50080/sp4/test cirtorch/test
-
 SPLIT="train2018_r800"
 
 echo "id,height,width" > "${SPLIT}.csv"

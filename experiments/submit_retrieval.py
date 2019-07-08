@@ -35,11 +35,10 @@ def predict_landmark_id(ids_query, feats_query, ids_train, feats_train, landmark
             'landmarks': f'{landmark_id} {score:.9f}',
         })
 
-    pred = pd.DataFrame(rows)
+    pred = pd.DataFrame(rows).set_index('id')
     pred['landmark_id'], pred['score'] = list(
         zip(*pred['landmarks'].apply(lambda x: str(x).split(' '))))
     pred['score'] = pred['score'].astype(np.float32)
-    pred = pred.sort_values('score', ascending=False).set_index('id')
 
     return pred
 
@@ -47,7 +46,7 @@ def predict_landmark_id(ids_query, feats_query, ids_train, feats_train, landmark
 def reranking_submission(ids_index, feats_index,
                          ids_test, feats_test,
                          ids_train, feats_train,
-                         subm, score_thresh=0.0, topk=100):
+                         subm, topk=100):
 
     train19_csv = pd.read_pickle(ROOT + 'input/train.pkl')[['id', 'landmark_id']]
     landmark_dict = train19_csv.set_index('id').sort_index().to_dict()['landmark_id']
@@ -55,21 +54,19 @@ def reranking_submission(ids_index, feats_index,
     pred_index = predict_landmark_id(ids_index, feats_index, ids_train, feats_train, landmark_dict)
     pred_test = predict_landmark_id(ids_test, feats_test, ids_train, feats_train, landmark_dict)
 
-    images = []
-    for test_id, pred, ids in tqdm.tqdm(zip(subm['id'], subm['test_pred_lid'], subm['index_id_list']),
-                                        total=len(subm)):
-        ids = ids[:topk]
-        retrieved_list = pred_index.loc[ids, 'landmark_id']
+    assert np.all(subm['id'] == pred_test.index)
+    subm['index_id_list'] = subm['images'].apply(lambda x: x.split(' ')[:topk])
 
-        if pred_test.loc[test_id, 'score'] > score_thresh:
-            whole_ids_same = pred_index[
-                (pred_index['landmark_id'] == pred) & (pred_index['score'] > score_thresh)].index
-            similar_ids_same = pred_index.loc[ids][(pred == pred_index.loc[ids, 'landmark_id'])].index
-            diff = set(whole_ids_same) - set(similar_ids_same)
-            retrieved_list = pd.concat([
-                retrieved_list,
-                pd.Series(pred, index=diff)
-            ])
+    images = []
+    for test_id, pred, ids in tqdm.tqdm(zip(subm['id'], pred_test['landmark_id'], subm['index_id_list']),
+                                        total=len(subm)):
+        retrieved_list = pred_index.loc[ids, 'landmark_id']
+        whole_ids_same = pred_index[pred_index['landmark_id'] == pred].index
+        diff = set(whole_ids_same) - set(ids)
+        retrieved_list = pd.concat([
+            retrieved_list,
+            pd.Series(pred, index=diff)
+        ])
 
         # use mergesort to keep relative order of original list.
         predefined_limit_topk = 100
@@ -103,7 +100,7 @@ def main():
         ROOT + 'experiments/v20c/feats_train_ms_L2_ep5_augmentation-middle_epochs-7_freqthresh-3_loss-arcface_verifythresh-30/',
         ROOT + 'experiments/v21c/feats_train_ms_L2_ep6_scaleup_ep5_augmentation-middle_epochs-7_freqthresh-3_loss-arcface_verifythresh-30/',
         ROOT + 'experiments/v22c/feats_train_ms_L2_ep4_scaleup_ep3_base_margin-0.4_freqthresh-2_verifythresh-30/',
-        ROOT + 'experiments/v23c/feats_train_ms_L2_ep6_scaleup_ep5_augmentation-middle_epochs-7_freqthresh-3_verifythresh-30/',
+        ROOT + 'experiments/v23c/feats_train_ms_L2_ep6_scaleup_ep5_augmentation-middle_epochs-7_freqthresih-3_verifythresh-30/',
         ROOT + 'experiments/v24c/feats_train_ms_L2_ep5_augmentation-middle_epochs-7_freqthresh-3_loss-cosface_verifythresh-30/',
     ]
 
@@ -133,10 +130,10 @@ def main():
     subm = reranking_submission(ids_index, feats_index,
                                 ids_test, feats_test,
                                 ids_train, feats_train,
-                                subm, score_thresh=0.0, topk=100)
+                                subm, topk=100)
 
     output_name = ROOT + f'output/submit_retrieval.csv.gz'
-    subm.to_csv(output_name, compression='gzip', index=False)
+    subm[['id', 'images']].to_csv(output_name, compression='gzip', index=False)
     print('saved to ' + output_name)
 
     cmd = f'kaggle c submit -c landmark-retrieval-2019 -f {output_name} -m "" '

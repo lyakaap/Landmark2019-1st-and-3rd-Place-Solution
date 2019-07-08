@@ -402,7 +402,7 @@ def launch_qsub(job_type,
                 "--n-blocks", str(n_blocks),
                 "--block-id", str(block_id),
             ]
-            n_hours = 18
+            n_hours = 4
             if ms:
                 cmd_with_args.append("--ms")
         else:
