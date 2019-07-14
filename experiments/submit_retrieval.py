@@ -12,9 +12,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + '/'
 
 def predict_landmark_id(ids_query, feats_query, ids_train, feats_train, landmark_dict, topk=3):
     print('build index...')
-    cpu_index = faiss.IndexFlatL2(feats_train.shape[1])
+    cpu_index = faiss.IndexFlatIP(feats_train.shape[1])
     cpu_index.add(feats_train)
-    dists, topk_idx = cpu_index.search(x=feats_query, k=topk)
+    sims, topk_idx = cpu_index.search(x=feats_query, k=topk)
     print('query search done.')
 
     df = pd.DataFrame(ids_query, columns=['id'])
@@ -27,7 +27,7 @@ def predict_landmark_id(ids_query, feats_query, ids_train, feats_train, landmark
         for i, image_id in enumerate(image_ids[:topk]):
             landmark_id = landmark_dict[image_id]
 
-            counter[landmark_id] += 1.0 - dists[imidx, i]
+            counter[landmark_id] += sims[imidx, i]
 
         landmark_id, score = counter.most_common(1)[0]
         rows.append({
@@ -57,12 +57,17 @@ def reranking_submission(ids_index, feats_index,
     assert np.all(subm['id'] == pred_test.index)
     subm['index_id_list'] = subm['images'].apply(lambda x: x.split(' ')[:topk])
 
+    # Make higher score, ealier position for re-ranking.
+    pred_index = pred_index.sort_values('score', ascending=False)
+
     images = []
     for test_id, pred, ids in tqdm.tqdm(zip(subm['id'], pred_test['landmark_id'], subm['index_id_list']),
                                         total=len(subm)):
         retrieved_list = pred_index.loc[ids, 'landmark_id']
         whole_ids_same = pred_index[pred_index['landmark_id'] == pred].index
-        diff = set(whole_ids_same) - set(ids)
+        # keep the order by referring to the original index
+        diff = sorted(set(whole_ids_same) - set(ids), key=whole_ids_same.get_loc)
+
         retrieved_list = pd.concat([
             retrieved_list,
             pd.Series(pred, index=diff)
