@@ -2,6 +2,8 @@
 
 
 
+## Face系
+
 ## [ArcFace: Additive Angular Margin Loss for Deep Face Recognition](https://arxiv.org/abs/1801.07698)
 
 CNNにより抽出した特徴ベクトルとFC層の重み(次元数：特徴ベクトルの次元数 x クラス数)を両方正規化して内積を取ると、出力のクラス数と同じ次元を持つベクトルが「cos類似度」とみなすことが出来る。
@@ -58,7 +60,23 @@ $\mathbb{1}\left(j=y_{i}\right)$ はjが正解クラスのとき1になって他
 
 
 
-[AdaptiveFace: Adaptive Margin and Sampling for Face Recognition]()
+## [AdaptiveFace: Adaptive Margin and Sampling for Face Recognition](http://openaccess.thecvf.com/content_CVPR_2019/html/Liu_AdaptiveFace_Adaptive_Margin_and_Sampling_for_Face_Recognition_CVPR_2019_paper.html)
+
+* 顔認識データセットはクラスごとにサンプル数が大きく異なるというクラス不均衡問題がある。
+
+* クラス不均衡問題に対して、クラスごとに適切なマージンの値を学習させるようにして対処した。
+* 実験から、サンプル数が少ないクラスほど、大きなマージンを好むことが分かった。
+* 他にもHard Protype MiningとAdaptive Samplingを提案。
+  * Hard Prototype Mining: Prototype（モデルの最終層の重み）単位で難しいサンプルをマイニング
+  * Adaptive Data Sampling: サンプル単位のマイニング
+
+## [UniformFace: Learning Deep Equidistributed Representation for Face Recognition]([http://ivg.au.tsinghua.edu.cn/people/Yueqi_Duan/CVPR19_UniformFace%20Learning%20Deep%20Equidistributed%20Representation%20for%20Face%20Recognition.pdf](http://ivg.au.tsinghua.edu.cn/people/Yueqi_Duan/CVPR19_UniformFace Learning Deep Equidistributed Representation for Face Recognition.pdf))
+
+* クラス間距離が均等になるような正則化項を提案
+
+## [RegularFace: Deep Face Recognition via Exclusive Regularization](http://openaccess.thecvf.com/content_CVPR_2019/html/Zhao_RegularFace_Deep_Face_Recognition_via_Exclusive_Regularization_CVPR_2019_paper.html)
+
+* クラス間距離が出来るだけ大きくなるような正則化項を提案
 
 
 

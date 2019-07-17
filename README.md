@@ -74,7 +74,7 @@ By using the clean version of the GLD-v2, we can obtain better results compared 
 | Dataset       | LB    | ROxf (M) | ROxf (H) | RPar (M) | RPar (H) |
 |---------------|-------|----------|----------|----------|----------|
 | v1            | 20.74 | 69.04    | 46.25    | 82.35    | 66.62    |
-| v1 + v2       | 29.2  | 77       | 56.59    | 89.25    | 77.35    |
+| v1 + v2       | 29.2  | 77       | 56.59    | **89.25**    | 77.35    |
 | v1 + v2-clean | **30.22** | **78.86**    | **59.93**    | 88.84    | **77.82**    |
 
 * Our re-ranking method is much better than other recent re-ranking methods, and can be combined with the others for even higher scores.
