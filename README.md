@@ -14,7 +14,7 @@ You can reproduce our environments using Dockerfile provided here https://github
 
 Dataset statistics:
 
-| Dataset (train split) | # Samples  | # Landmarks  |
+| Dataset (train split) | # Samples  | # Labels  |
 |-----------------------|------------|--------------|
 | GLD-v1   | 1,225,029  | 14,951       |
 | GLD-v2   | 4,132,914  | 203,094      |
@@ -36,12 +36,12 @@ Prepare FishNet pretrained checkpoints first.
 Following commands are for reproducing our results.
 ```
 cd ./experiments/
-bash donwload_train.sh # download data
-bash setup.sh  # setup data to ready training
+bash download_train.sh # download data
+python ../src/prepare_dataset.py  # setup data to ready for training
 bash reproduce.sh  # train models and predict for reproducing
 
 python submit_retrieval.py  # for retrieval challenge
-python submit_recognition.py  # for retrieval challenge
+python submit_recognition.py  # for recognition challenge
 ```
 
 ### Experiments
@@ -64,7 +64,7 @@ For evaluation, GLD-v2, ROxford-5K, and RParis-6K are used. LB shows the Private
 | loss        | LB | ROxf (M) | ROxf (H) | RPar (M) | RPar (H) |
 |-------------|-------|----------------|----------------|---------------|---------------|
 | softmax     | 17.95 | 66.73          | 43.5           | 79.25         | 58.58         |
-| contrastive | 20    | 67.3           | 44.3           | 80.6          | 61.5          |
+| triplet | 20    | 67.3           | 44.3           | 80.6          | 61.5          |
 | cosface     | **21.35** | **69.49**  | 44.78          | 80.06         | 62.95         |
 | arcface     | 20.74 | 69.04          | **46.25**          | **82.35**         | **66.62**         |
 
