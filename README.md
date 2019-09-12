@@ -74,8 +74,10 @@ By using the clean version of the GLD-v2, we can obtain better results compared 
 | Dataset       | LB    | ROxf (M) | ROxf (H) | RPar (M) | RPar (H) |
 |---------------|-------|----------|----------|----------|----------|
 | v1            | 20.74 | 69.04    | 46.25    | 82.35    | 66.62    |
+| v2            | 27.81 | 75.11    | 54.81    | 87.09    | 74.4    |
 | v1 + v2       | 29.2  | 77       | 56.59    | **89.25**    | 77.35    |
-| v1 + v2-clean | **30.22** | **78.86**    | **59.93**    | 88.84    | **77.82**    |
+| v2-clean      | 28.83 | 77.97    | 58.94    | 89.1    | **78.13**    |
+| v1 + v2-clean | **30.22** | **78.86**    | **59.93**    | 88.84    | 77.82    |
 
 * Our re-ranking method is much better than other recent re-ranking methods, and can be combined with the others for even higher scores.
 A combination of ours and αQE achieves a competitive result to the score of 1st place with only a single model.
