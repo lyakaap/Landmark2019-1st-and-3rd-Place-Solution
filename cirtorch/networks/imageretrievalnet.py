@@ -7,7 +7,7 @@ import torch.utils.model_zoo as model_zoo
 
 import torchvision
 
-from cirtorch.layers.pooling import MAC, SPoC, GeM, RMAC, Rpool
+from cirtorch.layers.pooling import MAC, SPoC, GeM, GeMmp, RMAC, Rpool
 from cirtorch.layers.normalization import L2N, PowerLaw
 from cirtorch.datasets.genericdataset import ImagesFromList
 from cirtorch.utils.general import get_data_root
@@ -23,8 +23,7 @@ FEATURES = {
 # TODO: pre-compute for more architectures and properly test variations (pre l2norm, post l2norm)
 # pre-computed local pca whitening that can be applied before the pooling layer
 L_WHITENING = {
-    'resnet101': 'http://cmp.felk.cvut.cz/cnnimageretrieval/data/whiten/retrieval-SfM-120k/retrieval-SfM-120k-resnet101-lwhiten-9f830ef.pth',
-# no pre l2 norm
+    'resnet101': 'http://cmp.felk.cvut.cz/cnnimageretrieval/data/whiten/retrieval-SfM-120k/retrieval-SfM-120k-resnet101-lwhiten-9f830ef.pth',  # no pre l2 norm
     # 'resnet101' : 'http://cmp.felk.cvut.cz/cnnimageretrieval/data/whiten/retrieval-SfM-120k/retrieval-SfM-120k-resnet101-lwhiten-da5c935.pth', # with pre l2 norm
 }
 
@@ -33,6 +32,7 @@ POOLING = {
     'mac': MAC,
     'spoc': SPoC,
     'gem': GeM,
+    'gemmp': GeMmp,
     'rmac': RMAC,
 }
 
@@ -52,29 +52,35 @@ WHITENING = {
     'alexnet-gem-r': 'http://cmp.felk.cvut.cz/cnnimageretrieval/data/whiten/retrieval-SfM-120k/retrieval-SfM-120k-alexnet-gem-r-whiten-4c9126b.pth',
     'vgg16-gem': 'http://cmp.felk.cvut.cz/cnnimageretrieval/data/whiten/retrieval-SfM-120k/retrieval-SfM-120k-vgg16-gem-whiten-eaa6695.pth',
     'vgg16-gem-r': 'http://cmp.felk.cvut.cz/cnnimageretrieval/data/whiten/retrieval-SfM-120k/retrieval-SfM-120k-vgg16-gem-r-whiten-83582df.pth',
+    'resnet50-gem': 'http://cmp.felk.cvut.cz/cnnimageretrieval/data/whiten/retrieval-SfM-120k/retrieval-SfM-120k-resnet50-gem-whiten-f15da7b.pth',
     'resnet101-mac-r': 'http://cmp.felk.cvut.cz/cnnimageretrieval/data/whiten/retrieval-SfM-120k/retrieval-SfM-120k-resnet101-mac-r-whiten-9df41d3.pth',
     'resnet101-gem': 'http://cmp.felk.cvut.cz/cnnimageretrieval/data/whiten/retrieval-SfM-120k/retrieval-SfM-120k-resnet101-gem-whiten-22ab0c1.pth',
     'resnet101-gem-r': 'http://cmp.felk.cvut.cz/cnnimageretrieval/data/whiten/retrieval-SfM-120k/retrieval-SfM-120k-resnet101-gem-r-whiten-b379c0a.pth',
+    'resnet101-gemmp': 'http://cmp.felk.cvut.cz/cnnimageretrieval/data/whiten/retrieval-SfM-120k/retrieval-SfM-120k-resnet101-gemmp-whiten-770f53c.pth',
+    'resnet152-gem': 'http://cmp.felk.cvut.cz/cnnimageretrieval/data/whiten/retrieval-SfM-120k/retrieval-SfM-120k-resnet152-gem-whiten-abe7b93.pth',
+    'densenet121-gem': 'http://cmp.felk.cvut.cz/cnnimageretrieval/data/whiten/retrieval-SfM-120k/retrieval-SfM-120k-densenet121-gem-whiten-79e3eea.pth',
+    'densenet169-gem': 'http://cmp.felk.cvut.cz/cnnimageretrieval/data/whiten/retrieval-SfM-120k/retrieval-SfM-120k-densenet169-gem-whiten-6b2a76a.pth',
+    'densenet201-gem': 'http://cmp.felk.cvut.cz/cnnimageretrieval/data/whiten/retrieval-SfM-120k/retrieval-SfM-120k-densenet201-gem-whiten-22ea45c.pth',
 }
 
 # output dimensionality for supported architectures
 OUTPUT_DIM = {
-    'alexnet': 256,
-    'vgg11': 512,
-    'vgg13': 512,
-    'vgg16': 512,
-    'vgg19': 512,
-    'resnet18': 512,
-    'resnet34': 512,
+    'alexnet':  256,
+    'vgg11':  512,
+    'vgg13':  512,
+    'vgg16':  512,
+    'vgg19':  512,
+    'resnet18':  512,
+    'resnet34':  512,
     'resnet50': 2048,
     'resnet101': 2048,
     'resnet152': 2048,
     'densenet121': 1024,
-    'densenet161': 2208,
     'densenet169': 1664,
     'densenet201': 1920,
-    'squeezenet1_0': 512,
-    'squeezenet1_1': 512,
+    'densenet161': 2208,  # largest densenet
+    'squeezenet1_0':  512,
+    'squeezenet1_1':  512,
 }
 
 
@@ -100,7 +106,8 @@ class ImageRetrievalNet(nn.Module):
             s = o.size()
             o = o.permute(0, 2, 3, 1).contiguous().view(-1, s[1])
             o = self.lwhiten(o)
-            o = o.view(s[0], s[2], s[3], self.lwhiten.out_features).permute(0, 3, 1, 2)
+            o = o.view(s[0], s[2], s[3],
+                       self.lwhiten.out_features).permute(0, 3, 1, 2)
             # o = self.norm(o)
 
         # features -> pool -> norm
@@ -120,9 +127,11 @@ class ImageRetrievalNet(nn.Module):
         return tmpstr
 
     def meta_repr(self):
-        tmpstr = '  (' + 'meta' + '): dict( \n'  # + self.meta.__repr__() + '\n'
+        # + self.meta.__repr__() + '\n'
+        tmpstr = '  (' + 'meta' + '): dict( \n'
         tmpstr += '     architecture: {}\n'.format(self.meta['architecture'])
-        tmpstr += '     local_whitening: {}\n'.format(self.meta['local_whitening'])
+        tmpstr += '     local_whitening: {}\n'.format(
+            self.meta['local_whitening'])
         tmpstr += '     pooling: {}\n'.format(self.meta['pooling'])
         tmpstr += '     regional: {}\n'.format(self.meta['regional'])
         tmpstr += '     whitening: {}\n'.format(self.meta['whitening'])
@@ -134,6 +143,7 @@ class ImageRetrievalNet(nn.Module):
 
 
 def init_network(params):
+
     # parse params with default values
     architecture = params.get('architecture', 'resnet101')
     local_whitening = params.get('local_whitening', False)
@@ -154,7 +164,8 @@ def init_network(params):
             net_in = getattr(torchvision.models, architecture)(pretrained=True)
         else:
             # initialize with random weights, later on we will fill features with custom pretrained network
-            net_in = getattr(torchvision.models, architecture)(pretrained=False)
+            net_in = getattr(torchvision.models, architecture)(
+                pretrained=False)
     else:
         # initialize with random weights
         net_in = getattr(torchvision.models, architecture)(pretrained=False)
@@ -174,7 +185,8 @@ def init_network(params):
     elif architecture.startswith('squeezenet'):
         features = list(net_in.features.children())
     else:
-        raise ValueError('Unsupported or unknown architecture: {}!'.format(architecture))
+        raise ValueError(
+            'Unsupported or unknown architecture: {}!'.format(architecture))
 
     # initialize local whitening
     if local_whitening:
@@ -187,7 +199,8 @@ def init_network(params):
                 print(">> {}: for '{}' custom computed local whitening '{}' is used"
                       .format(os.path.basename(__file__), lw, os.path.basename(L_WHITENING[lw])))
                 whiten_dir = os.path.join(get_data_root(), 'whiten')
-                lwhiten.load_state_dict(model_zoo.load_url(L_WHITENING[lw], model_dir=whiten_dir))
+                lwhiten.load_state_dict(model_zoo.load_url(
+                    L_WHITENING[lw], model_dir=whiten_dir))
             else:
                 print(">> {}: for '{}' there is no local whitening computed, random weights are used"
                       .format(os.path.basename(__file__), lw))
@@ -196,7 +209,10 @@ def init_network(params):
         lwhiten = None
 
     # initialize pooling
-    pool = POOLING[pooling]()
+    if pooling == 'gemmp':
+        pool = POOLING[pooling](mp=dim)
+    else:
+        pool = POOLING[pooling]()
 
     # initialize regional pooling
     if regional:
@@ -210,7 +226,8 @@ def init_network(params):
                 print(">> {}: for '{}' custom computed regional whitening '{}' is used"
                       .format(os.path.basename(__file__), rw, os.path.basename(R_WHITENING[rw])))
                 whiten_dir = os.path.join(get_data_root(), 'whiten')
-                rwhiten.load_state_dict(model_zoo.load_url(R_WHITENING[rw], model_dir=whiten_dir))
+                rwhiten.load_state_dict(model_zoo.load_url(
+                    R_WHITENING[rw], model_dir=whiten_dir))
             else:
                 print(">> {}: for '{}' there is no regional whitening computed, random weights are used"
                       .format(os.path.basename(__file__), rw))
@@ -233,7 +250,8 @@ def init_network(params):
                 print(">> {}: for '{}' custom computed whitening '{}' is used"
                       .format(os.path.basename(__file__), w, os.path.basename(WHITENING[w])))
                 whiten_dir = os.path.join(get_data_root(), 'whiten')
-                whiten.load_state_dict(model_zoo.load_url(WHITENING[w], model_dir=whiten_dir))
+                whiten.load_state_dict(model_zoo.load_url(
+                    WHITENING[w], model_dir=whiten_dir))
             else:
                 print(">> {}: for '{}' there is no whitening computed, random weights are used"
                       .format(os.path.basename(__file__), w))
@@ -260,7 +278,8 @@ def init_network(params):
         print(">> {}: for '{}' custom pretrained features '{}' are used"
               .format(os.path.basename(__file__), architecture, os.path.basename(FEATURES[architecture])))
         model_dir = os.path.join(get_data_root(), 'networks')
-        net.features.load_state_dict(model_zoo.load_url(FEATURES[architecture], model_dir=model_dir))
+        net.features.load_state_dict(model_zoo.load_url(
+            FEATURES[architecture], model_dir=model_dir))
 
     return net
 
@@ -272,7 +291,8 @@ def extract_vectors(net, images, image_size, transform, bbxs=None, ms=[1], msp=1
 
     # creating dataset loader
     loader = torch.utils.data.DataLoader(
-        ImagesFromList(root='', images=images, imsize=image_size, bbxs=bbxs, transform=transform),
+        ImagesFromList(root='', images=images, imsize=image_size,
+                       bbxs=bbxs, transform=transform),
         batch_size=1, shuffle=False, num_workers=8, pin_memory=True
     )
 
@@ -282,13 +302,13 @@ def extract_vectors(net, images, image_size, transform, bbxs=None, ms=[1], msp=1
         for i, input in enumerate(loader):
             input = input.cuda()
 
-            if len(ms) == 1:
+            if len(ms) == 1 and ms[0] == 1:
                 vecs[:, i] = extract_ss(net, input)
             else:
                 vecs[:, i] = extract_ms(net, input, ms, msp)
 
-            if (i + 1) % print_freq == 0 or (i + 1) == len(images):
-                print('\r>>>> {}/{} done...'.format((i + 1), len(images)), end='')
+            if (i+1) % print_freq == 0 or (i+1) == len(images):
+                print('\r>>>> {}/{} done...'.format((i+1), len(images)), end='')
         print('')
 
     return vecs
@@ -299,17 +319,19 @@ def extract_ss(net, input):
 
 
 def extract_ms(net, input, ms, msp):
+
     v = torch.zeros(net.meta['outputdim'])
 
     for s in ms:
         if s == 1:
             input_t = input.clone()
         else:
-            input_t = nn.functional.interpolate(input, scale_factor=s, mode='bilinear', align_corners=False)
+            input_t = nn.functional.interpolate(
+                input, scale_factor=s, mode='bilinear', align_corners=False)
         v += net(input_t).pow(msp).cpu().data.squeeze()
 
     v /= len(ms)
-    v = v.pow(1. / msp)
+    v = v.pow(1./msp)
     v /= v.norm()
 
     return v
@@ -322,7 +344,8 @@ def extract_regional_vectors(net, images, image_size, transform, bbxs=None, ms=[
 
     # creating dataset loader
     loader = torch.utils.data.DataLoader(
-        ImagesFromList(root='', images=images, imsize=image_size, bbxs=bbxs, transform=transform),
+        ImagesFromList(root='', images=images, imsize=image_size,
+                       bbxs=bbxs, transform=transform),
         batch_size=1, shuffle=False, num_workers=8, pin_memory=True
     )
 
@@ -339,8 +362,8 @@ def extract_regional_vectors(net, images, image_size, transform, bbxs=None, ms=[
                 # vecs.append(extract_msr(net, input, ms, msp))
                 raise NotImplementedError
 
-            if (i + 1) % print_freq == 0 or (i + 1) == len(images):
-                print('\r>>>> {}/{} done...'.format((i + 1), len(images)), end='')
+            if (i+1) % print_freq == 0 or (i+1) == len(images):
+                print('\r>>>> {}/{} done...'.format((i+1), len(images)), end='')
         print('')
 
     return vecs
@@ -357,7 +380,8 @@ def extract_local_vectors(net, images, image_size, transform, bbxs=None, ms=[1],
 
     # creating dataset loader
     loader = torch.utils.data.DataLoader(
-        ImagesFromList(root='', images=images, imsize=image_size, bbxs=bbxs, transform=transform),
+        ImagesFromList(root='', images=images, imsize=image_size,
+                       bbxs=bbxs, transform=transform),
         batch_size=1, shuffle=False, num_workers=8, pin_memory=True
     )
 
@@ -374,8 +398,8 @@ def extract_local_vectors(net, images, image_size, transform, bbxs=None, ms=[1],
                 # vecs.append(extract_msl(net, input, ms, msp))
                 raise NotImplementedError
 
-            if (i + 1) % print_freq == 0 or (i + 1) == len(images):
-                print('\r>>>> {}/{} done...'.format((i + 1), len(images)), end='')
+            if (i+1) % print_freq == 0 or (i+1) == len(images):
+                print('\r>>>> {}/{} done...'.format((i+1), len(images)), end='')
         print('')
 
     return vecs

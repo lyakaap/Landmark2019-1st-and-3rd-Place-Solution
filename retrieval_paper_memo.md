@@ -70,7 +70,7 @@ $\mathbb{1}\left(j=y_{i}\right)$ はjが正解クラスのとき1になって他
   * Hard Prototype Mining: Prototype（モデルの最終層の重み）単位で難しいサンプルをマイニング
   * Adaptive Data Sampling: サンプル単位のマイニング
 
-## [UniformFace: Learning Deep Equidistributed Representation for Face Recognition]([http://ivg.au.tsinghua.edu.cn/people/Yueqi_Duan/CVPR19_UniformFace%20Learning%20Deep%20Equidistributed%20Representation%20for%20Face%20Recognition.pdf](http://ivg.au.tsinghua.edu.cn/people/Yueqi_Duan/CVPR19_UniformFace Learning Deep Equidistributed Representation for Face Recognition.pdf))
+## [UniformFace: Learning Deep Equidistributed Representation for Face Recognition](http://ivg.au.tsinghua.edu.cn/people/Yueqi_Duan/CVPR19_UniformFace%20Learning%20Deep%20Equidistributed%20Representation%20for%20Face%20Recognition.pdf)
 
 * クラス間距離が均等になるような正則化項を提案
 
@@ -82,7 +82,7 @@ $\mathbb{1}\left(j=y_{i}\right)$ はjが正解クラスのとき1になって他
 
 ## Pooling手法あれこれ
 
-- **Sum-pooling of Convolutions (SPoC) **
+- **Sum-pooling of Convolutions (SPoC)**
   - [Aggregating Deep Convolutional Features for Image Retrieval](https://arxiv.org/abs/1510.07493)
   - global average-pooling
 - **weighted sum-pooling (CroW)**
@@ -106,6 +106,23 @@ $\mathbb{1}\left(j=y_{i}\right)$ はjが正解クラスのとき1になって他
 - **NetVLAD pooling**
   - [NetVLAD: CNN architecture for weakly supervised place recognition](https://arxiv.org/abs/1511.07247)
     - VLADのcodebookのassignmentをsoftにすることで、end-to-endに学習することを可能にしたpooling手法。提案論文では、GPS情報を使ってpositive/negative ペアを作り出し、triplet lossによって学習することで従来のVLADを大きく上回る精度を達成した。
+
+
+
+## [Learning with Average Precision: Training Image Retrieval with a Listwise Loss](https://arxiv.org/abs/1906.07589)
+
+Average Precisionを直接最適化する系の話。Landmarkに関するデータセットでTriplet Lossを上回る精度を達成。ちょっと検証に使っているデータセットが少ない？他のAP Lossなどと比較して差分があまり無くない？結局CosFaceとかの方が強くない？みたいな疑問はある。
+
+### Method
+
+mean Average Precision, 通称mAPがImage Retrievalの評価指標としてはメジャーになってきている。しかし、APの計算にはソート及びindicator functionが含まれていて、微分不可能である。
+そこで、このindicator functionを無くして、soft assignmentを使うことで微分可能にしようというのが本論文のモチベーション。これをList-wise Lossとして提案。
+具体的には、クエリとそれに対応するデータベースのサンプルとのコサイン類似度と、[-1, 1]の区間のM個のビンそれぞれとをsoft assignする。この「類似度受け取ってソート」→「類似度受け取ってそれに応じたビンによるsoft assign」の変換がキーアイデア。ちなみにMは十分大きくないとgradientの近似精度は悪くなる気がするが、M=20程度で十分らしい。以下は通常のAPとquantized APの比較。1 - quantized APが提案手法のlossとなる。
+
+* 通常AP: ランキング上位（類似度によるソート）からprecisionとincremental recallを計算
+* quantized AP: m=1,2,...,Mで、m個目に対応するビンの代表点b_mとコサイン類似度とのtriangluar kernelを計算し、そいつがsoft assignの重みとなる。そのあと各ビンでのprecisionとincremental recallを計算。（このときb_m = 1 - (m-1) ⊿）
+
+また、バッチサイズは大きくした方が、ミニバッチ内で計算するAPがglobalなAPにより近くなる。ただ、解像度も大きくしたいが、そうするとバッチサイズを大きくできない。
 
 
 
@@ -452,3 +469,22 @@ CVPR2019. 画像検索におけるグラフベースのre-ranking手法の論文
   * 何でもかんでも検索結果に追加していたら、クエリと無関係なものまで引っ張ってきてしまう恐れがあるので、しきい値によって追加するかどうかを決める。
 * ROxford5kやRParis6k, Google Landmark DatasetでQE/Diffusionを大きく上回る精度を達成。
 * たまに精度が良くないときがあるが、これはtopic-drift (無関係のものも拾ってきてしまう現象) が原因。
+
+### その他
+
+* An Analysis of Object Embeddings for Image Retrieval
+  * Image retrievalの精度：ResNet-50 Classifier trained ImageNet > Faster R-CNN model trained OpenImagesV4 > Mask R-CNN
+  * bounding boxなどのアノテーションはImage retrievalのためのembeddingの表現力向上にはつながらないことを示唆している。
+
+* Hamming Embedding
+  * visual wordsの数（k-meansのk）を小さくし過ぎると、特に似てないdescriptor同士がマッチングしてしまう一方で、大きくし過ぎるとノイズの影響などでマッチして欲しいdescriptorがマッチしなくなる現象が起きてしまう。このトレードオフを解決したのがHE。
+  * k-meansのkを小さくして、代わりに同じクラスタのボロノイ領域内でハミング距離を計算する。つまり、ボロノイ領域を分割してそれぞれの分割領域にバイナリ表現を与えることでそれを可能にした。一定のハミング距離より小さいものがあれば、それをマッチしたとする。
+* Burstiness
+  * あるvisual wordsがある一枚の画像に出現したとき、そのvisual wordsが同じ画像内で大量に出現しやすいという性質。
+  * この性質は、建物などの繰り返しの形状などによって引き起こされていると考えられる。
+  * これはtf-idfなどでは対処しづらいため、burstiness normalizationなどが提案されている。
+* HQE
+  * HEを使ったQE
+  * Hamming distanceが小さいものをマッチングとして、マッチング数が一定以上のものをQEに使う。
+  * reliable画像のVisual Wordsをもとのqueryが持っているVisual Wordsに統合する。
+
