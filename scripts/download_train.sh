@@ -36,7 +36,6 @@ unzip google-landmarks-dataset.zip
 mv train.csv ../input/train2018.csv
 cd ../src/
 python donwloader.py download
-python prepare_dataset.py
 
 # download 'oxford5k', 'paris6k', 'roxford5k', 'rparis6k' for evaluation
 cd ..

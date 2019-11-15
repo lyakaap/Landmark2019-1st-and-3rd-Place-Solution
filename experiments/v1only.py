@@ -211,8 +211,7 @@ def tuning(mode, n_iter, n_gpu, devices, save_interval, n_blocks, block_id):
 
     space = [
         {
-            # 'loss': ['arcface', 'cosface'],
-            'loss': ['arcface', 'cosface', 'softmax'],
+            'loss': ['arcface'],
             'epochs': [5],
             'augmentation': ['soft'],
         },

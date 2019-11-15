@@ -46,7 +46,7 @@ def predict_landmark_id(ids_query, feats_query, ids_train, feats_train, landmark
 def reranking_submission(ids_index, feats_index,
                          ids_test, feats_test,
                          ids_train, feats_train,
-                         subm, topk=100):
+                         subm, topk=100, thresh=1.8):
 
     train19_csv = pd.read_pickle(ROOT + 'input/train.pkl')[['id', 'landmark_id']]
     landmark_dict = train19_csv.set_index('id').sort_index().to_dict()['landmark_id']
@@ -63,19 +63,23 @@ def reranking_submission(ids_index, feats_index,
     images = []
     for test_id, pred, ids in tqdm.tqdm(zip(subm['id'], pred_test['landmark_id'], subm['index_id_list']),
                                         total=len(subm)):
-        retrieved_list = pred_index.loc[ids, 'landmark_id']
-        whole_ids_same = pred_index[pred_index['landmark_id'] == pred].index
-        # keep the order by referring to the original index
-        diff = sorted(set(whole_ids_same) - set(ids), key=whole_ids_same.get_loc)
+        retrieved_pred = pred_index.loc[ids, ['landmark_id', 'score']]
 
-        retrieved_list = pd.concat([
-            retrieved_list,
-            pd.Series(pred, index=diff)
-        ])
-
+        # Sort-step
+        is_positive: pd.Series = (pred == retrieved_pred['landmark_id'])
         # use mergesort to keep relative order of original list.
-        predefined_limit_topk = 100
-        reranked_ids = (pred != retrieved_list).sort_values(kind='mergesort').index[:predefined_limit_topk]
+        sorted_retrieved_ids: list = (~is_positive).sort_values(
+            kind='mergesort').index.to_list()
+
+        # Insert-step
+        whole_positives = pred_index[pred_index['landmark_id'] == pred]
+        whole_positives = whole_positives[score + whole_positives['score'] > thresh]
+        # keep the order by referring to the original index
+        diff = sorted(set(whole_positives.index) - set(ids),
+                      key=whole_positives.index.get_loc)
+        pos_cnt = is_positive.sum()
+        reranked_ids = np.insert(sorted_retrieved_ids, pos_cnt, diff)[:topk]
+
         images.append(' '.join(reranked_ids))
 
     subm['images'] = images

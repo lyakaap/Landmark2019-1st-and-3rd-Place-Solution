@@ -57,40 +57,11 @@ python vX.py multigpu-predict -m vX/epX.pth --scale L2 --ms -b 32 -d 0,1
 ```
 
 ### Results
-
-* Comparison among loss functions with a ResNet-101. Dataset used for training is GLD-v1.
-For evaluation, GLD-v2, ROxford-5K, and RParis-6K are used. LB shows the Private LB scores.
-
-| loss        | LB | ROxf (M) | ROxf (H) | RPar (M) | RPar (H) |
-|-------------|-------|----------------|----------------|---------------|---------------|
-| softmax     | 17.95 | 66.73          | 43.5           | 79.25         | 58.58         |
-| triplet | 20    | 67.3           | 44.3           | 80.6          | 61.5          |
-| cosface     | **21.35** | **69.49**  | 44.78          | 80.06         | 62.95         |
-| arcface     | 20.74 | 69.04          | **46.25**          | **82.35**         | **66.62**         |
-
-* Comparison with dataset used for training. ArcFace and ResNet-101 are used for this experiment.
-By using the clean version of the GLD-v2, we can obtain better results compared to GLD-v2 without cleaning.
-
-| Dataset       | LB    | ROxf (M) | ROxf (H) | RPar (M) | RPar (H) |
-|---------------|-------|----------|----------|----------|----------|
-| v1            | 20.74 | 69.04    | 46.25    | 82.35    | 66.62    |
-| v2            | 27.81 | 75.11    | 54.81    | 87.09    | 74.4    |
-| v1 + v2       | 29.2  | 77       | 56.59    | **89.25**    | 77.35    |
-| v2-clean      | 28.83 | 77.97    | 58.94    | 89.1    | **78.13**    |
-| v1 + v2-clean | **30.22** | **78.86**    | **59.93**    | 88.84    | 77.82    |
-
-* Our re-ranking method is much better than other recent re-ranking methods, and can be combined with the others for even higher scores.
-A combination of ours and αQE achieves a competitive result to the score of 1st place with only a single model.
-
-
-| Method               | Private LB | Public LB |
-|----------------------|------------|-----------|
-| baseline             | 30.22      | 27.81     |
-| + Diffusion (k=1000) | 31.2       | 29.36     |
-| + EGT (t=inf, k=100) | 30.33      | 28.44     |
-| + αQE (α=3.0)        | 32.21      | 30.34     |
-| + Ours               | 36.77      | 34.88     |
-| + αQE+Ours           | **37.23**      | **35.5**      |
+| Place | Team        |     Private    |     Public     |
+|-------|-------------|:--------------:|:--------------:|
+| 1st   | smlyaka (ours)    | **37.23** | **35.69** |
+| 2nd   | imagesearch |      34.75     |      32.25     |
+| 3rd   | Layer 6 AI  |      32.18     |      29.85     |
 
 ### Reference
 * https://github.com/filipradenovic/cnnimageretrieval-pytorch/tree/master/cirtorch
