@@ -1,5 +1,7 @@
 # Landmark2019-1st-and-3rd-Place-Solution
 
+![pipeline](https://user-images.githubusercontent.com/27487010/69476665-0858c880-0e20-11ea-9fb4-5292f61e9c12.png)
+
 The 1st Place Solution of the Google Landmark 2019 Retrieval Challenge and the 3rd Place Solution of the Recognition Challenge.
 
 Our solution has been published! You can check from: [Large-scale Landmark Retrieval/Recognition under a Noisy and Diverse Dataset](https://arxiv.org/abs/1906.04087)
