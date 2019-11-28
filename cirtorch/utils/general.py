@@ -6,7 +6,7 @@ def get_root():
 
 
 def get_data_root():
-    return os.path.join(get_root(), 'data')
+    return os.path.join(get_root(), os.path.join('input', 'cirtorch_data'))
 
 
 def htime(c):

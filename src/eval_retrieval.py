@@ -13,7 +13,7 @@ from tqdm import tqdm
 from cirtorch.datasets.genericdataset import ImagesFromList
 from cirtorch.datasets.testdataset import configdataset
 from cirtorch.utils.evaluate import compute_map_and_print
-from cirtorch.utils.general import get_root
+from cirtorch.utils.general import get_data_root
 from src import utils
 
 
@@ -76,7 +76,7 @@ def eval_datasets(model,
                   ):
     model = model.eval()
 
-    data_root = os.path.join(get_root(), 'cirtorch')
+    data_root = get_data_root()
     scales = [1 / 2 ** (1 / 2), 1.0, 2 ** (1 / 2)] if ms else [1.0]
     results = dict()
 
