@@ -21,7 +21,7 @@ import tqdm
 from PIL import Image
 import click
 
-CSV_PATH, OUT_DIR = '../input/train2018.csv', '../input/train2018_r800'  # recognition challenge
+CSV_PATH, OUT_DIR = '../input/gld_v1/train.csv', '../input/gld_v1/train'  # recognition challenge
 # CSV_PATH, OUT_DIR = '../input/index.csv', '../input/index'  # retrieval challenge
 # CSV_PATH, OUT_DIR = '../input/test.csv', '../input/test'  # test data
 

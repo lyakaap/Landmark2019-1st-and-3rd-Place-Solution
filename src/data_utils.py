@@ -22,8 +22,6 @@ from torch.utils.data import Dataset
 
 from src import torch_custom
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + '/'
-
 pd.set_option('mode.chained_assignment', None)
 
 
@@ -212,7 +210,8 @@ def build_transforms(mean=(0.485, 0.456, 0.406),
 
 
 def make_train_loaders(params,
-                       data_root=ROOT + 'input/train2018',
+                       data_root,
+                       use_clean_version=False,
                        train_transform=None,
                        eval_transform=None,
                        scale='S',
@@ -222,71 +221,32 @@ def make_train_loaders(params,
                        num_workers=4,
                        seed=77777
                        ):
-    df = prepare_recognition_df(df_path=data_root + '.pkl',
-                                class_topk=class_topk,
-                                least_freq_thresh=-1,
-                                limit_samples_per_class=limit_samples_per_class,
-                                seed=seed)
+    if use_clean_version:
+        clean_train = pd.read_csv(params['clean_path'])
+        clean_train_ids = np.concatenate(clean_train['images'].str.split(' '))
+        train = pd.read_pickle(data_root + 'train.pkl')
 
-    if 'path' not in df.columns:
-        if '18' in data_root:  # train data from 2018
-            df['path'] = df['id'].apply(lambda x: data_root + f'/{x}.jpg')
-        else:
-            df['path'] = df['id'].apply(lambda x: data_root + '/' + '/'.join(x[:3]) + f'/{x}.jpg')
+        new_train = train[train['id'].isin(clean_train_ids)]
+        assert len(clean_train) == new_train['landmark_id'].nunique()
+        params['class_topk'] = len(clean_train)
 
-    data_loaders = dict()
-
-    if '2' in scale:
-        bins = [0.67, 0.77, 1.33, 1.5]
+        df = prepare_recognition_df(df=new_train,
+                                    class_topk=params['class_topk'],
+                                    least_freq_thresh=-1,
+                                    limit_samples_per_class=limit_samples_per_class,
+                                    seed=seed)
     else:
-        bins = [0.77, 1.33]
-
-    df['aspect_ratio'] = df['height'] / df['width']
-    df['aspect_gid'] = _quantize(df['aspect_ratio'], bins=bins)
-
-    train_split, val_split = train_test_split(df, test_size=test_size, random_state=seed)
-
-    data_loaders['train'] = prepare_grouped_loader_from_df(
-        train_split, train_transform, params['batch_size'],
-        scale=scale, is_train=True, num_workers=num_workers)
-    data_loaders['val'] = prepare_grouped_loader_from_df(
-        val_split, eval_transform, params['test_batch_size'],
-        scale=scale, is_train=False, num_workers=num_workers)
-
-    return data_loaders
-
-
-def make_verified_train_loaders(params,
-                                data_root=ROOT + 'input/train',
-                                train_transform=None,
-                                eval_transform=None,
-                                scale='S',
-                                limit_samples_per_class=-1,
-                                test_size=0.1,
-                                num_workers=4,
-                                seed=77777
-                                ):
-    verified_train = pd.read_csv(params['clean_path'])
-    verified_train_ids = np.concatenate(verified_train['images'].str.split(' '))
-    train = pd.read_pickle(data_root + '.pkl')
-
-    new_train = train[train['id'].isin(verified_train_ids)]
-    assert len(verified_train) == new_train['landmark_id'].nunique()
-    params['class_topk'] = len(verified_train)
-
-    df = prepare_recognition_df(df=new_train,
-                                class_topk=params['class_topk'],
-                                least_freq_thresh=-1,
-                                limit_samples_per_class=limit_samples_per_class,
-                                seed=seed)
+        df = prepare_recognition_df(df_path=data_root + 'train.pkl',
+                                    class_topk=class_topk,
+                                    least_freq_thresh=-1,
+                                    limit_samples_per_class=limit_samples_per_class,
+                                    seed=seed)
 
     if 'path' not in df.columns:
-        if '18' in data_root:  # train data from 2018
-            df['path'] = df['id'].apply(lambda x: data_root + f'/{x}.jpg')
-        else:
-            df['path'] = df['id'].apply(lambda x: data_root + '/' + '/'.join(x[:3]) + f'/{x}.jpg')
-
-    data_loaders = dict()
+        if 'gld_v1' in data_root:
+            df['path'] = df['id'].apply(lambda x: f'{data_root}/{split}/{x}.jpg')
+        if 'gld_v2' in data_root:
+            df['path'] = df['id'].apply(lambda x: f'{data_root}/{split}/{"/".join(x[:3])}/{x}.jpg')
 
     if '2' in scale:  # finer-grained aspect grouping
         bins = [0.67, 0.77, 1.33, 1.5]
@@ -298,6 +258,7 @@ def make_verified_train_loaders(params,
 
     train_split, val_split = train_test_split(df, test_size=test_size, random_state=seed)
 
+    data_loaders = dict()
     data_loaders['train'] = prepare_grouped_loader_from_df(
         train_split, train_transform, params['batch_size'],
         scale=scale, is_train=True, num_workers=num_workers)
@@ -309,6 +270,7 @@ def make_verified_train_loaders(params,
 
 
 def make_predict_loaders(params,
+                         data_root,
                          eval_transform=None,
                          scale='S',
                          splits=('index', 'test'),
@@ -328,15 +290,15 @@ def make_predict_loaders(params,
         bins = [0.77, 1.33]
 
     for split in splits:
-        df = pd.read_pickle(ROOT + f'input/{split}.pkl')
+        df = pd.read_pickle(f'{data_root}/{split}.pkl')
         n_per_block = math.ceil(len(df) / n_blocks)
         df = df.iloc[block_id * n_per_block: (block_id + 1) * n_per_block]
 
         if 'path' not in df.columns:
-            if split in ['train', 'index19', 'test19']:
-                df['path'] = df['id'].apply(lambda x: f'../input/{split}/' + '/'.join(x[:3]) + f'/{x}.jpg')
-            else:
-                df['path'] = df['id'].apply(lambda x: f'../input/{split}/{x}.jpg')
+            if 'gld_v1' in data_root:
+                df['path'] = df['id'].apply(lambda x: f'{data_root}/{split}/{x}.jpg')
+            if 'gld_v2' in data_root:
+                df['path'] = df['id'].apply(lambda x: f'{data_root}/{split}/{"/".join(x[:3])}/{x}.jpg')
 
         if scale == 'O':  # original resolution
             dataset = LandmarkDataset(paths=df['path'].values, transform=eval_transform)

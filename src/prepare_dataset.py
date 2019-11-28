@@ -13,7 +13,7 @@ def csv2pkl_train(split) -> None:
         lambda x: x.split('/')[-1].replace('.jpg', ''))
     df = df.merge(df_path, on='id')
     df = generate_size_info_df(paths, df)
-    df.to_pickle(f'./{split}.pkl')
+    df.to_pickle(f'../input/{split}.pkl')
 
 
 def generate_size_info_df(paths, df) -> pd.DataFrame:
@@ -27,15 +27,15 @@ def generate_size_info_df(paths, df) -> pd.DataFrame:
 
 
 if __name__ == '__main__':
-    csv2pkl(split='train')
-    csv2pkl(split='train2018_r800')
+    csv2pkl(split='gld_v2/train')
+    csv2pkl(split='gld_v1/train')
 
-    test19 = pd.read_csv('../input/test19/test.csv', index_col=[0]).sort_index()
-    test_paths = list(Path('../input/test19/').glob('**/*.jpg'))
-    test19 = generate_size_info_df(test_paths, test19)
-    test19.to_pickle('../input/test19.pkl')
+    test = pd.read_csv('../input/gld_v2/test.csv', index_col=[0]).sort_index()
+    test_paths = list(Path('../input/gld_v2/test').glob('**/*.jpg'))
+    test = generate_size_info_df(test_paths, test)
+    test.to_pickle('../input/gld_v2/test.pkl')
 
-    index19 = pd.read_csv('../input/index19/index.csv', index_col=[0]).sort_index()
-    index_paths = list(Path('../input/index19/').glob('**/*.jpg'))
-    index19 = generate_size_info_df(index_paths, index19)
-    index19.reset_index().sort_values(by='id').to_pickle('../input/index19.pkl')
+    index = pd.read_csv('../input/gld_v2/index.csv', index_col=[0]).sort_index()
+    index_paths = list(Path('../input/gld_v2/index/').glob('**/*.jpg'))
+    index = generate_size_info_df(index_paths, index)
+    index.reset_index().sort_values(by='id').to_pickle('../input/gld_v2/index.pkl')

@@ -48,10 +48,12 @@ params = {
     'brightness_limit': 0.0,
     'contrast_limit': 0.0,
     'augmentation': 'soft',
-    'data': 'train',
+    'train_data': 'gld_v2',
     'freeze_bn': True,
     'verifythresh': 30,
     'freqthresh': 3,
+    'base_ckpt_path': 'exp/v1only/ep4_augmentation-soft_epochs-5_loss-arcface.pth',
+    'clean_path': ROOT + 'input/gld_v2/clean_train.csv',
 }
 
 
@@ -88,13 +90,6 @@ def job(tuning, params_path, devices, resume, save_interval):
     exp_path = ROOT + f'exp/{params["ex_name"]}/'
     os.environ['CUDA_VISIBLE_DEVICES'] = devices
 
-    if resume is None:
-        # C-AIRとABCIで整合性が取れるようにしている。
-        params['base_ckpt_path'] = f'exp/v1only/ep4_augmentation-soft_epochs-5_loss-{params["loss"]}.pth'
-        params['clean_path'] = ROOT + f'input/clean/train19_cleaned_verifythresh{params["verifythresh"]}_freqthresh{params["freqthresh"]}.csv'
-    else:
-        params = utils.load_checkpoint(path=resume, params=True)['params']
-
     logger, writer = utils.get_logger(log_dir=exp_path + f'{mode_str}/log/{setting}',
                                       tensorboard_dir=exp_path + f'{mode_str}/tf_board/{setting}')
 
@@ -116,9 +111,10 @@ def job(tuning, params_path, devices, resume, save_interval):
         contrast_limit=params['contrast_limit'],
     )
 
-    data_loaders = data_utils.make_verified_train_loaders(
+    data_loaders = data_utils.make_train_loaders(
         params=params,
-        data_root=ROOT + 'input/' + params['data'],
+        data_root=ROOT + 'input/' + params['train_data'],
+        use_clean_version=True,
         train_transform=train_transform,
         eval_transform=eval_transform,
         scale='S2',
@@ -139,54 +135,13 @@ def job(tuning, params_path, devices, resume, save_interval):
     criterion = nn.CrossEntropyLoss()
     optimizer = utils.get_optim(params, model)
 
-    if resume is None:
-        sdict = torch.load(ROOT + params['base_ckpt_path'])['state_dict']
-        if params['loss'] == 'adacos':
-            del sdict['final.W']  # remove fully-connected layer
-        else:
-            del sdict['final.weight']  # remove fully-connected layer
-        model.load_state_dict(sdict, strict=False)
+    sdict = torch.load(ROOT + params['base_ckpt_path'])['state_dict']
+    del sdict['final.weight']  # remove fully-connected layer
+    model.load_state_dict(sdict, strict=False)
 
-        scheduler = optim.lr_scheduler.CosineAnnealingLR(
-            optimizer, T_max=params['epochs'] * len(data_loaders['train']), eta_min=3e-6)
-        start_epoch, end_epoch = (0, params['epochs'] - params['scaleup_epochs'])
-    else:
-        ckpt = utils.load_checkpoint(path=resume, model=model, optimizer=optimizer, epoch=True)
-        model, optimizer, start_epoch = ckpt['model'], ckpt['optimizer'], ckpt['epoch'] + 1
-        end_epoch = params['epochs']
-
-        scheduler = optim.lr_scheduler.CosineAnnealingLR(
-            optimizer, T_max=params['epochs'] * len(data_loaders['train']), eta_min=3e-6,
-            last_epoch=start_epoch * len(data_loaders['train']))
-
-        setting += 'scaleup_' + resume.split('/')[-1].replace('.pth', '')
-        data_loaders = data_utils.make_verified_train_loaders(
-            params=params,
-            data_root=ROOT + 'input/' + params['data'],
-            train_transform=train_transform,
-            eval_transform=eval_transform,
-            scale='M2',
-            test_size=0,
-            num_workers=8)
-        batch_norm.freeze_bn(model)
-
-    # tuning実行するだけで、resume可能に
-    # resume = ROOT + f'exp/v2clean/ep2_freqthresh-{params["freqthresh"]}_loss-{params["loss"]}_verifythresh-{params["verifythresh"]}.pth'
-    # ckpt = utils.load_checkpoint(path=resume, model=model, optimizer=optimizer, epoch=True)
-    # model, optimizer, start_epoch = ckpt['model'], ckpt['optimizer'], ckpt['epoch'] + 1
-    # end_epoch = params['epochs']
-    # scheduler = optim.lr_scheduler.CosineAnnealingLR(
-    #     optimizer, T_max=params['epochs'] * len(data_loaders['train']), eta_min=3e-6,
-    #     last_epoch=start_epoch * len(data_loaders['train']))
-
-    # eval on paris/oxford
-    # resume = ROOT + f'exp/v2clean/ep4_freqthresh-{params["freqthresh"]}_loss-{params["loss"]}_verifythresh-{params["verifythresh"]}.pth'
-    # ckpt = utils.load_checkpoint(path=resume, model=model, optimizer=optimizer, epoch=True)
-    # model, optimizer, start_epoch = ckpt['model'], ckpt['optimizer'], params['epochs']
-    # end_epoch = params['epochs']
-    # scheduler = optim.lr_scheduler.CosineAnnealingLR(
-    #     optimizer, T_max=params['epochs'] * len(data_loaders['train']), eta_min=3e-6,
-    #     last_epoch=start_epoch * len(data_loaders['train']))
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=params['epochs'] * len(data_loaders['train']), eta_min=3e-6)
+    start_epoch, end_epoch = (0, params['epochs'] - params['scaleup_epochs'])
 
     if len(devices.split(',')) > 1:
         model = nn.DataParallel(model)
@@ -266,28 +221,10 @@ def tuning(mode, n_iter, n_gpu, devices, save_interval, n_blocks, block_id):
         n_gpu = len(devices.split(','))
 
     space = [
-        # {
-        #     'loss': ['arcface'],
-        #     # 'epochs': [5],
-        #     # 'augmentation': ['soft'],
-        #     'verifythresh': [20, 30, 40],
-        #     'freqthresh': [1],
-        #     # 'freqthresh': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-        # },
-        # {
-        #     'loss': ['arcface'],
-        #     # 'epochs': [5],
-        #     # 'augmentation': ['soft'],
-        #     'verifythresh': [20],
-        #     'freqthresh': [2],
-        #     # 'freqthresh': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-        # },
         {
             'loss': ['arcface'],
-            # 'epochs': [5],
-            # 'augmentation': ['soft'],
-            'verifythresh': [20, 30, 40, 50],
-            'freqthresh': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+            # 'verifythresh': [20, 30, 40, 50],
+            # 'freqthresh': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
         },
     ]
 
@@ -340,6 +277,7 @@ def predict(model_path, devices, ms, scale, batch_size, splits, n_blocks, block_
 
     train_transform, eval_transform = data_utils.build_transforms()
     data_loaders = data_utils.make_predict_loaders(params,
+                                                   data_root=ROOT + 'input/gld_v2',
                                                    eval_transform=eval_transform,
                                                    scale=scale,
                                                    splits=splits,

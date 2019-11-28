@@ -19,14 +19,14 @@ class AdaCos(nn.Module):
         self.s = math.log(out_features - 1) / math.cos(theta_zero)
         self.m = m
         self.ls_eps = ls_eps  # label smoothing
-        self.W = Parameter(torch.FloatTensor(out_features, in_features))
-        nn.init.xavier_uniform_(self.W)
+        self.weight = Parameter(torch.FloatTensor(out_features, in_features))
+        nn.init.xavier_uniform_(self.weight)
 
     def forward(self, input, label):
         # normalize features
         x = F.normalize(input)
         # normalize weights
-        W = F.normalize(self.W)
+        W = F.normalize(self.weight)
         # dot product
         logits = F.linear(x, W)
         # add margin

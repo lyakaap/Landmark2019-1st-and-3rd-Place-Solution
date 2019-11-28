@@ -47,7 +47,7 @@ params = {
     'brightness_limit': 0.0,
     'contrast_limit': 0.0,
     'augmentation': 'soft',
-    'data': 'train2018_r800',
+    'train_data': 'gld_v1',
 }
 
 
@@ -107,7 +107,7 @@ def job(tuning, params_path, devices, resume, save_interval):
     )
 
     data_loaders = data_utils.make_train_loaders(params=params,
-                                                 data_root=ROOT + 'input/' + params['data'],
+                                                 data_root=ROOT + 'input/' + params['train_data'],
                                                  train_transform=train_transform,
                                                  eval_transform=eval_transform,
                                                  scale='S2',
@@ -267,6 +267,7 @@ def predict(model_path, devices, ms, scale, batch_size, splits, n_blocks, block_
 
     train_transform, eval_transform = data_utils.build_transforms()
     data_loaders = data_utils.make_predict_loaders(params,
+                                                   data_root=ROOT + 'input/gld_v2',
                                                    eval_transform=eval_transform,
                                                    scale=scale,
                                                    splits=splits,
@@ -335,7 +336,6 @@ def launch_qsub(job_type,
                 model_path, ms, scale, batch_size, splits,  # predict args
                 n_blocks, instance_type
                 ):
-
     exp_path = ROOT + f'exp/{params["ex_name"]}/'
     logger = utils.get_logger(log_dir=exp_path)
     job_ids = []
@@ -351,6 +351,7 @@ def launch_qsub(job_type,
                 "--n-blocks", str(n_blocks),
                 "--block-id", str(block_id),
             ]
+            n_hours = 48
         elif job_type == 'predict':
             cmd_with_args = [
                 "python", "-W", "ignore", __file__, "predict",
@@ -361,12 +362,13 @@ def launch_qsub(job_type,
                 "--n-blocks", str(n_blocks),
                 "--block-id", str(block_id),
             ]
+            n_hours = 4
             if ms:
                 cmd_with_args.append("--ms")
         else:
             raise ValueError('job-type should be one of "tuning" or "predict"')
         proc = qsub.qsub(cmd_with_args,
-                         n_hours=48,
+                         n_hours=n_hours,
                          instance_type=instance_type,
                          logger=logger)
         logger.info(f'Response from qsub: {proc.returncode}')
@@ -389,6 +391,7 @@ def launch_qsub(job_type,
 @click.option('--batch-size', '-b', type=int, default=64)
 @click.option('--splits', type=str, default='index,test')
 def multigpu_predict(devices, model_path, ms, scale, batch_size, splits):
+
     devices = devices.split(',')
 
     procs = []
