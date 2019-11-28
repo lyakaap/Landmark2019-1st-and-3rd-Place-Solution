@@ -301,7 +301,7 @@ def launch_tuning(mode: str='grid', n_iter: int=1, n_gpu: int=1, devices: str='0
 
     params['tuning_params'] = list(candidate_list[0].keys())
 
-    df_path = root + f'experiments/{params["ex_name"]}/tuning/results.csv'
+    df_path = root + f'exp/{params["ex_name"]}/tuning/results.csv'
     if Path(df_path).exists() and Path(df_path).stat().st_size > 5:
         df_results = pd.read_csv(df_path)
     else:
@@ -324,7 +324,7 @@ def launch_tuning(mode: str='grid', n_iter: int=1, n_gpu: int=1, devices: str='0
             if len(gpu_list) >= n_gpu:
                 devices = ','.join([gpu_list.pop() for _ in range(n_gpu)])
                 setting = '_'.join(f'{key}-{val}' for key, val in p.items())
-                params_path = root + f'experiments/{params["ex_name"]}/tuning/params_{setting}.json'
+                params_path = root + f'exp/{params["ex_name"]}/tuning/params_{setting}.json'
                 with open(params_path, 'w') as f:
                     json.dump(params, f)
                 break
@@ -349,7 +349,7 @@ def launch_tuning(mode: str='grid', n_iter: int=1, n_gpu: int=1, devices: str='0
 
 
 def show_tuning_result(ex_name, mode='markdown', sort_by=None, ascending=False):
-    table = pd.read_csv(f'../experiments/{ex_name}/tuning/results.csv')
+    table = pd.read_csv(f'../exp/{ex_name}/tuning/results.csv')
     if sort_by is not None:
         table = table.sort_values(sort_by, ascending=ascending)
 
