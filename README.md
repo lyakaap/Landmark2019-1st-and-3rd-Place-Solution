@@ -4,7 +4,11 @@
 
 The 1st Place Solution of the Google Landmark 2019 Retrieval Challenge and the 3rd Place Solution of the Recognition Challenge.
 
-Our solution has been published! You can check from: [Large-scale Landmark Retrieval/Recognition under a Noisy and Diverse Dataset](https://arxiv.org/abs/1906.04087)
+We have published two papers regarding our solution. You can check from:
+- [Large-scale Landmark Retrieval/Recognition under a Noisy and Diverse Dataset](https://arxiv.org/abs/1906.04087)
+  - Tech report describing our solution (4-pages)
+- [Two-stage Discriminative Re-ranking for Large-scale Landmark Retrieval](https://arxiv.org/abs/2003.11211)
+  - Extended version of above tech report, including more detailed explanation and additional experimental results (10-pages, CVPR Workshop 2020)
 
 ### Environments
 You can reproduce our environments using Dockerfile provided here https://github.com/lyakaap/Landmark2019-1st-and-3rd-Place-Solution/blob/master/docker/Dockerfile
